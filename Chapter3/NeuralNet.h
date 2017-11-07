@@ -90,6 +90,7 @@ namespace NeuralNet {
 		ublas::vector<T> cost_delta(const ublas::vector<T>& z, const ublas::vector<T>& a,
 			const ublas::vector<T>& y) const
 		{
+			z; // not used by design
 			return a - y;
 		}
 
@@ -172,10 +173,10 @@ namespace NeuralNet {
 				std::vector<ublas::matrix<T>> delta_nabla_w;
 				PopulateZeroWeightsAndBiases(delta_nabla_b, delta_nabla_w);
 				backprop(x, y, delta_nabla_b, delta_nabla_w);
-				for (auto i = 0; i < biases.size(); ++i)
+				for (auto j = 0; j< biases.size(); ++j)
 				{
-					nabla_b[i] += delta_nabla_b[i];
-					nabla_w[i] += delta_nabla_w[i];
+					nabla_b[j] += delta_nabla_b[j];
+					nabla_w[j] += delta_nabla_w[j];
 				}
 			}
 			for (auto i = 0; i < biases.size(); ++i)

@@ -19,7 +19,7 @@ tied to showcase some of the new features of Modern C++ here, STL algorithms and
 In chapter 1 I convert network.py to C++ in Python style all the code is in one cpp file.
 
 ## [Chapter 3](https://github.com/GarethRichards/Machine-Learning-CPP/blob/master/Chapter3.md)
-In chapter 3 I have a go at converting netork2.py to C++ this time I put the code into a header file
+In chapter 3 I have a go at converting network2.py to C++ this time I put the code into a header file
 construct some [policy classes](https://en.wikipedia.org/wiki/Policy-based_design) and demonstrate 
 how they can be used in Network2.cpp.
 

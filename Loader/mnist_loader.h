@@ -8,7 +8,7 @@
 
 using namespace boost::numeric;
 
-
+// Loads the MNIST data files
 template<typename T>
 class mnist_loader
 {
@@ -23,6 +23,7 @@ public:
 			int MagicNumber; int nItems; int nRows; int nCol;
 			myFile.read((char *)&MagicNumber, 4);
 			MagicNumber=_byteswap_ulong(MagicNumber);
+			if (MagicNumber != 2049) "Throw magic number for training data incorrect";
 			myFile.read((char *)&nItems, 4);
 			nItems = _byteswap_ulong(nItems);
 			myFile.read((char *)&nRows, 4);
@@ -47,6 +48,7 @@ public:
 			int MagicNumber; int nItems;
 			myFile.read((char *)&MagicNumber, 4);
 			MagicNumber = _byteswap_ulong(MagicNumber);
+			if (MagicNumber != 2051) "Throw magic number for label file incorrect";
 			myFile.read((char *)&nItems, 4);
 			nItems = _byteswap_ulong(nItems);
 			for (int i = 0; i < nItems; ++i)

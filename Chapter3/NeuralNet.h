@@ -1,6 +1,4 @@
-#pragma once
-
-#pragma once
+﻿#pragma once
 
 #include <cmath>
 #include <iostream>
@@ -113,7 +111,7 @@ namespace NeuralNet {
 			for (auto &b : biases) Randomize(b);
 			for (auto &w : weights) Randomize(w);
 		}
-		// Initalize the array of Baises and Matrix of weights
+		// Initalize the array of Biases and Matrix of weights
 		void PopulateZeroWeightsAndBiases(BiasesVector &b, WeightsVector &w)  const
 		{
 			for (size_t i = 1; i < m_sizes.size(); ++i)
@@ -186,7 +184,7 @@ namespace NeuralNet {
 				weights[i] = (1 - eta * (lmbda / n)) * weights[i] - (eta / mini_batch_size) * nabla_w[i];
 			}
 		}
-		// Populates the gradent for the cost function for the biases in the vector nabla_b 
+		// Populates the gradient for the cost function for the biases in the vector nabla_b 
 		// and the weights in nabla_w
 		void backprop(const ublas::vector<T> &x, const ublas::vector<T> &y,
 			std::vector<ublas::vector<T>> &nabla_b,
@@ -207,7 +205,7 @@ namespace NeuralNet {
 			auto iActivations = activations.end() - 1;
 			auto izs = zs.end() - 1;
 			sigmoid_prime(*izs);
-			ublas::vector<T> delta = cost_delta(*izs, *iActivations, y);
+			ublas::vector<T> delta = this->cost_delta(*izs, *iActivations, y);
 			auto ib = nabla_b.end() - 1;
 			auto iw = nabla_w.end() - 1;
 			*ib = delta;
@@ -228,7 +226,7 @@ namespace NeuralNet {
 		int accuracy(typename std::vector<TrainingData>::iterator td_begin,
 			typename std::vector<TrainingData>::iterator td_end) const
 		{
-			return count_if(td_begin, td_end, [this](const TrainingData &testElement) {
+			return count_if(td_begin, td_end, [=](const TrainingData &testElement) {
 				auto res = feedforward(testElement.first);
 				return (std::distance(res.begin(), max_element(res.begin(), res.end()))
 					== std::distance(testElement.second.begin(), max_element(testElement.second.begin(), testElement.second.end())));
@@ -241,14 +239,14 @@ namespace NeuralNet {
 			T lmbda) const
 		{
 			T cost(0);
-			cost = std::accumulate(td_begin, td_end, cost, [this](T cost,const TrainingData &td)
+			cost = std::accumulate(td_begin, td_end, cost, [=](T cost,const TrainingData &td)
 			{
 				auto res = feedforward(td.first);
-				return cost + cost_fn(res, td.second);
+				return cost + this->cost_fn(res, td.second);
 			});
 			size_t count = std::distance(td_begin, td_end);
 			cost /= static_cast<double>(count);
-			T reg = std::accumulate(weights.begin(), weights.end(), 0.0, [this, lmbda, count](T reg,const ublas::matrix<T> &w)
+			T reg = std::accumulate(weights.begin(), weights.end(), 0.0, [lmbda, count](T reg,const ublas::matrix<T> &w)
 			{
 				return reg + .5 * (lmbda * pow(norm_frobenius(w), 2)) / static_cast<T>(count);
 			});

@@ -1,5 +1,14 @@
 ﻿// NeuralNet1.cpp : Defines the entry point for the console application.
 //
+// An example written to implement the stochastic gradient descent learning algorithm 
+// for a feed forward neural network. Gradients are calculated using back propagation.
+// 
+// Code is written to be a C++ version of network2.py from http://neuralnetworksanddeeplearning.com/chap3.html
+// Variable and functions names follow the names used in the original Python
+//
+// This implementation aims to be slight better C++ rather than Python code ported to C++
+//
+// Uses the boost ublas library for linear algebra operations
 
 #include "stdafx.h"
 

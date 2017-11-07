@@ -77,7 +77,7 @@ namespace NeuralNet {
 			const ublas::vector<T>& y) const
 		{
 			T total(0);
-			for (size_t i = 0; i < a.size(); ++i)
+			for (auto i = 0; i < a.size(); ++i)
 			{
 				total += -y(i)*log(a(i)) - (1 - y(i))*log(1 - a(i));
 			}
@@ -114,7 +114,7 @@ namespace NeuralNet {
 		// Initalize the array of Biases and Matrix of weights
 		void PopulateZeroWeightsAndBiases(BiasesVector &b, WeightsVector &w)  const
 		{
-			for (size_t i = 1; i < m_sizes.size(); ++i)
+			for (auto i = 1; i < m_sizes.size(); ++i)
 			{
 				b.push_back(ublas::zero_vector<T>(m_sizes[i]));
 				w.push_back(ublas::zero_matrix<T>(m_sizes[i], m_sizes[i - 1]));
@@ -123,7 +123,7 @@ namespace NeuralNet {
 		// Returns the output of the network if the input is a
 		ublas::vector<T> feedforward(ublas::vector<T> a) const
 		{
-			for (size_t i = 0; i < biases.size(); ++i)
+			for (auto i = 0; i < biases.size(); ++i)
 			{
 				ublas::vector<T> c = prod(weights[i], a) + biases[i];
 				sigmoid(c);
@@ -146,7 +146,7 @@ namespace NeuralNet {
 			int epochs, int mini_batch_size, T eta, T lmbda,
 			std::function<void(const Network &,int Epoc)> feedback)
 		{
-			for (int j = 0; j < epochs; j++)
+			for (auto j = 0; j < epochs; j++)
 			{
 				std::random_shuffle(td_begin, td_end);
 				for (auto td_i = td_begin; td_i < td_end; td_i += mini_batch_size) {
@@ -165,20 +165,20 @@ namespace NeuralNet {
 			std::vector<ublas::vector<T>> nabla_b;
 			std::vector<ublas::matrix<T>> nabla_w;
 			PopulateZeroWeightsAndBiases(nabla_b, nabla_w);
-			for (int i = 0; i < mini_batch_size; ++i, td++) {
+			for (auto i = 0; i < mini_batch_size; ++i, td++) {
 				ublas::vector<T> x = td->first; // test data
 				ublas::vector<T> y = td->second; // expected result
 				std::vector<ublas::vector<T>> delta_nabla_b;
 				std::vector<ublas::matrix<T>> delta_nabla_w;
 				PopulateZeroWeightsAndBiases(delta_nabla_b, delta_nabla_w);
 				backprop(x, y, delta_nabla_b, delta_nabla_w);
-				for (size_t i = 0; i < biases.size(); ++i)
+				for (auto i = 0; i < biases.size(); ++i)
 				{
 					nabla_b[i] += delta_nabla_b[i];
 					nabla_w[i] += delta_nabla_w[i];
 				}
 			}
-			for (size_t i = 0; i < biases.size(); ++i)
+			for (auto i = 0; i < biases.size(); ++i)
 			{
 				biases[i] -= eta / mini_batch_size * nabla_b[i];
 				weights[i] = (1 - eta * (lmbda / n)) * weights[i] - (eta / mini_batch_size) * nabla_w[i];
@@ -194,7 +194,7 @@ namespace NeuralNet {
 			std::vector<ublas::vector<T>> activations; // Stores the activations of each layer
 			activations.push_back(x);
 			std::vector<ublas::vector<T>> zs; // The z vectors layer by layer
-			for (size_t i = 0; i < biases.size(); ++i) {
+			for (auto i = 0; i < biases.size(); ++i) {
 				ublas::vector<T> z = prod(weights[i], activation) + biases[i];
 				zs.push_back(z);
 				activation = z;

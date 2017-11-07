@@ -31,11 +31,11 @@ public:
 			myFile.read((char *)&nCol, 4);
 			nCol = _byteswap_ulong(nCol);
 			unsigned char *buf = new unsigned char[nRows*nCol];
-			for (int i = 0; i < nItems; ++i)
+			for (auto i = 0; i < nItems; ++i)
 			{
 				myFile.read((char *)buf, nRows*nCol);
 				ublas::vector<T> data(nRows*nCol);
-				for (int j = 0; j < nRows*nCol; ++j)
+				for (auto j = 0; j < nRows*nCol; ++j)
 				{
 					data[j] = static_cast<T>(buf[j]) / 255.0;
 				}

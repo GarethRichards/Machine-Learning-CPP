@@ -1,7 +1,8 @@
-## Chapter 1
+# Chapter 1
 The C++ in the Chapter1 directory is unsurprisingly a port of the code of [chapter 1](http://neuralnetworksanddeeplearning.com/chap1.html)
 of the online book [Neural networks and deep learning](http://neuralnetworksanddeeplearning.com).
 
+## The Network
 As explained in the book a neural network can be modelled by a list of biases, 1D vectors 
 and a set of weights, 2D matrices. These can be defined in C++ as follows:
 ```c++
@@ -28,6 +29,19 @@ This code is equivalent to the python code:
                         for x, y in zip(sizes[:-1], sizes[1:])]
 ```
 But not quite equivalent as the C++ biases and weights are zero at this point.
+
+## The Training Data
+The training data is a vector of pair or uBLAS vectors where the first vector is the array of inputs (x’s in the Python) the second vector is the expected result, a uBLAS vector which contains 1 in the index of the expected answer.
+```c++
+using TrainingData = std::pair<ublas::vector<T>, ublas::vector<T>>;
+```
+By creating the alias TrainingData we can add greater readability to the class definition. The TrainingData definition is not actually a type so the class which loads the training data can fully define the TrainingData as:
+```c++
+std::vector<std::pair<ublas::vector<T>, ublas::vector<T>>> 
+```
+And this interoperates with the TrainingData definition.
+
+## Feed Forward
 
 The equivalent of the feedforward function in C++ is as follows:
 ```c++
@@ -57,6 +71,8 @@ By now if your unfamiliar with python you may be puzzled by the some of the pyth
 	for b, w in zip(self.biases, self.weights):
 ```
 Is a pythonic way of iterating through the weights and biases lists together. In C++ I've fallen back to writing a simple loop for this expression.
+
+## Back propogation
 
 Let's have a brief look at the backprop function and to explore the differences between the python and C++ code. The first loop over the biases and weights
 runs the same algorithm as the feedforward function, but storing the intermediate working which we use later in the function.
@@ -107,6 +123,8 @@ In the numpy library to multiply two vectors together you can use a*b and the re
 element_prod(a,b) is equivalent. In python the code np.dot(delta, activations[-l-1].transpose()) creates a matrix which the m[i,j]=a[i]*b[j]
 the equivalent function in the ublas library is the outer_prod function. 
 
+## Evaluate
+
 In C++ version of the evaluate function I've used the max element and distance functions to determine the location of the maximum 
 signal.
 ```c++
@@ -121,11 +139,11 @@ signal.
 	}
 ```
 
-### Loading the MNIST data
+## Loading the MNIST data
 The data used by this project was obtained from the [MNIST Database](http://yann.lecun.com/exdb/mnist/). The code to load the data is contained in
 the Loader directory.
 
-### Running the code
+## Running the code
 So you've downloaded the code compiled it and you wait, and wait, go make a cup tea come back and still nothing. The debug version of this code 
 is almost certainly not using the vectorising abilities of your computer. If this is the case please build an optimized version of the code 
 and if your PC is similar to mine you should start to see output like this

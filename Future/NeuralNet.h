@@ -101,32 +101,56 @@ namespace NeuralNet {
 	private:
 		using BiasesVector = std::vector<ublas::vector<T>>;
 		using WeightsVector = std::vector<ublas::matrix<T>>;
-		std::vector<int> m_sizes;
-		BiasesVector biases;
-		WeightsVector weights;
+		
+		class NetworkData {
+		public:
+			std::vector<int> m_sizes;
+			BiasesVector biases;
+			WeightsVector weights;
+
+			NetworkData(const std::vector<int> &m_sizes) 
+				: m_sizes(m_sizes)
+			{
+				PopulateZeroWeightsAndBiases();
+			}
+			
+			void PopulateZeroWeightsAndBiases()
+			{
+				for (auto i = 1; i < m_sizes.size(); ++i)
+				{
+					biases.push_back(ublas::zero_vector<T>(m_sizes[i]));
+					weights.push_back(ublas::zero_matrix<T>(m_sizes[i], m_sizes[i - 1]));
+				}
+			}
+			NetworkData &operator+=(const NetworkData& rhs){
+				for (auto j = 0; j< biases.size(); ++j)
+				{
+					biases[j] += rhs.biases[j];
+					weights[j] += rhs.weights[j];
+				}
+				return *this;
+			}
+			void Randomize(){
+				for (auto &b : biases) NeuralNet::Randomize(b);
+				for (auto &w : weights) NeuralNet::Randomize(w);			
+			}
+		};
+		
+		NetworkData nd;
 	public:
-		Network(const std::vector<int>& sizes)
-			: m_sizes(sizes)
+		Network(const std::vector<int> &sizes)
+			: nd(sizes) 
 		{
-			PopulateZeroWeightsAndBiases(biases, weights);
-			for (auto &b : biases) Randomize(b);
-			for (auto &w : weights) Randomize(w);
+			nd.Randomize();
 		}
 		// Initalize the array of Biases and Matrix of weights
-		void PopulateZeroWeightsAndBiases(BiasesVector &b, WeightsVector &w)  const
-		{
-			for (auto i = 1; i < m_sizes.size(); ++i)
-			{
-				b.push_back(ublas::zero_vector<T>(m_sizes[i]));
-				w.push_back(ublas::zero_matrix<T>(m_sizes[i], m_sizes[i - 1]));
-			}
-		}
+
 		// Returns the output of the network if the input is a
 		ublas::vector<T> feedforward(ublas::vector<T> a) const
 		{
-			for (auto i = 0; i < biases.size(); ++i)
+			for (auto i = 0; i < nd.biases.size(); ++i)
 			{
-				ublas::vector<T> c = prod(weights[i], a) + biases[i];
+				ublas::vector<T> c = prod(nd.weights[i], a) + nd.biases[i];
 				sigmoid(c);
 				a = c;
 			}
@@ -163,40 +187,33 @@ namespace NeuralNet {
 		void update_mini_batch(typename std::vector<TrainingData>::iterator td, int mini_batch_size, T eta,
 			T lmbda, int n)
 		{
-			std::vector<ublas::vector<T>> nabla_b;
-			std::vector<ublas::matrix<T>> nabla_w;
-			PopulateZeroWeightsAndBiases(nabla_b, nabla_w);
-			for (auto i = 0; i < mini_batch_size; ++i, td++) {
-				ublas::vector<T> x = td->first; // test data
-				ublas::vector<T> y = td->second; // expected result
-				std::vector<ublas::vector<T>> delta_nabla_b;
-				std::vector<ublas::matrix<T>> delta_nabla_w;
-				PopulateZeroWeightsAndBiases(delta_nabla_b, delta_nabla_w);
-				backprop(x, y, delta_nabla_b, delta_nabla_w);
-				for (auto j = 0; j< biases.size(); ++j)
-				{
-					nabla_b[j] += delta_nabla_b[j];
-					nabla_w[j] += delta_nabla_w[j];
-				}
-			}
-			for (auto i = 0; i < biases.size(); ++i)
+			NetworkData nabla0(nd.m_sizes);
+			auto nabla=std::accumulate(td,td+mini_batch_size,nabla0,[=](NetworkData &nabla,const TrainingData &td)
 			{
-				biases[i] -= eta / mini_batch_size * nabla_b[i];
-				weights[i] = (1 - eta * (lmbda / n)) * weights[i] - (eta / mini_batch_size) * nabla_w[i];
+				ublas::vector<T> x = td.first; // test data
+				ublas::vector<T> y = td.second; // expected result
+				NetworkData delta_nabla(this->nd.m_sizes);
+				backprop(x, y, delta_nabla);
+				nabla += delta_nabla;
+				return nabla;
+			});
+			for (auto i = 0; i < nd.biases.size(); ++i)
+			{
+				nd.biases[i] -= eta / mini_batch_size * nabla.biases[i];
+				nd.weights[i] = (1 - eta * (lmbda / n)) * nd.weights[i] - (eta / mini_batch_size) * nabla.weights[i];
 			}
 		}
 		// Populates the gradient for the cost function for the biases in the vector nabla_b 
 		// and the weights in nabla_w
 		void backprop(const ublas::vector<T> &x, const ublas::vector<T> &y,
-			std::vector<ublas::vector<T>> &nabla_b,
-			std::vector<ublas::matrix<T>> &nabla_w)
+			NetworkData &nabla)
 		{
 			auto activation = x;
 			std::vector<ublas::vector<T>> activations; // Stores the activations of each layer
 			activations.push_back(x);
 			std::vector<ublas::vector<T>> zs; // The z vectors layer by layer
-			for (auto i = 0; i < biases.size(); ++i) {
-				ublas::vector<T> z = prod(weights[i], activation) + biases[i];
+			for (auto i = 0; i < nd.biases.size(); ++i) {
+				ublas::vector<T> z = prod(nd.weights[i], activation) + nd.biases[i];
 				zs.push_back(z);
 				activation = z;
 				sigmoid(activation);
@@ -207,12 +224,12 @@ namespace NeuralNet {
 			auto izs = zs.end() - 1;
 			sigmoid_prime(*izs);
 			ublas::vector<T> delta = this->cost_delta(*izs, *iActivations, y);
-			auto ib = nabla_b.end() - 1;
-			auto iw = nabla_w.end() - 1;
+			auto ib = nabla.biases.end() - 1;
+			auto iw = nabla.weights.end() - 1;
 			*ib = delta;
 			iActivations--;
 			*iw = outer_prod(delta, trans(*iActivations));
-			auto iWeights = weights.end();
+			auto iWeights = nd.weights.end();
 			while (iActivations != activations.begin())
 			{
 				izs--; iWeights--; iActivations--; ib--; iw--;
@@ -247,7 +264,7 @@ namespace NeuralNet {
 			});
 			size_t count = std::distance(td_begin, td_end);
 			cost /= static_cast<double>(count);
-			T reg = std::accumulate(weights.begin(), weights.end(), 0.0, [lmbda, count](T reg,const ublas::matrix<T> &w)
+			T reg = std::accumulate(nd.weights.begin(), nd.weights.end(), 0.0, [lmbda, count](T reg,const ublas::matrix<T> &w)
 			{
 				return reg + .5 * (lmbda * pow(norm_frobenius(w), 2)) / static_cast<T>(count);
 			});

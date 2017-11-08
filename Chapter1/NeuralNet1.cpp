@@ -70,7 +70,7 @@ public:
 	//	layer is assumed to be an input layer, and by convention we
 	//	won't set any biases for those neurons, since biases are only
 	//	ever used in computing the outputs from later layers.
-	Network(std::vector<int> sizes)
+	Network(const std::vector<int>& sizes)
 		: m_sizes(sizes)
 	{
 		PopulateZeroWeightsAndBiases(biases, weights);
@@ -89,7 +89,7 @@ public:
 	// Returns the output of the network if the input is a
 	ublas::vector<double> feedforward(ublas::vector<double> a) const
 	{
-		for (size_t i = 0; i < biases.size(); ++i)
+		for (auto i = 0; i < biases.size(); ++i)
 		{
 			ublas::vector<double> c = prod(weights[i], a) + biases[i];
 			sigmoid(c);
@@ -110,10 +110,10 @@ public:
 	void SGD(std::vector<TrainingData> training_data, int epochs, int mini_batch_size, double eta,
 		std::vector<TrainingData> test_data)
 	{
-		for (int j = 0; j < epochs; j++)
+		for (auto j = 0; j < epochs; j++)
 		{
 			std::random_shuffle(training_data.begin(), training_data.end());
-			for (size_t i = 0; i < training_data.size(); i += mini_batch_size) {
+			for (auto i = 0; i < training_data.size(); i += mini_batch_size) {
 				auto iter = training_data.begin();
 				std::advance(iter, i);
 				update_mini_batch(iter, mini_batch_size, eta);
@@ -134,20 +134,20 @@ public:
 		std::vector<ublas::vector<double>> nabla_b;
 		std::vector<ublas::matrix<double>> nabla_w;
 		PopulateZeroWeightsAndBiases(nabla_b, nabla_w);
-		for (int i = 0; i < mini_batch_size; ++i, td++) {
+		for (auto i = 0; i < mini_batch_size; ++i, td++) {
 			ublas::vector<double> x = td->first; // test data
 			ublas::vector<double> y = td->second; // expected result
 			std::vector<ublas::vector<double>> delta_nabla_b;
 			std::vector<ublas::matrix<double>> delta_nabla_w;
 			PopulateZeroWeightsAndBiases(delta_nabla_b, delta_nabla_w);
 			backprop(x, y, delta_nabla_b, delta_nabla_w);
-			for (size_t k = 0; k < biases.size(); ++k)
+			for (auto k = 0; k < biases.size(); ++k)
 			{
 				nabla_b[k] += delta_nabla_b[k];
 				nabla_w[k] += delta_nabla_w[k];
 			}
 		}
-		for (size_t i = 0; i < biases.size(); ++i)
+		for (auto i = 0; i < biases.size(); ++i)
 		{
 			biases[i] -= eta / mini_batch_size * nabla_b[i];
 			weights[i] -= eta / mini_batch_size * nabla_w[i];
@@ -162,7 +162,7 @@ public:
 		std::vector<ublas::vector<double>> activations; // Stores the activations of each layer
 		activations.push_back(x);
 		std::vector<ublas::vector<double>> zs; // The z vectors layer by layer
-		for (size_t i = 0; i < biases.size(); ++i) {
+		for (auto i = 0; i < biases.size(); ++i) {
 			ublas::vector<double> z = prod(weights[i], activation) + biases[i];
 			zs.push_back(z);
 			activation = z;

@@ -1,5 +1,5 @@
 # Chapter 3
-The code written for chapter 1 was passable C++ but obviously not good enough for library code. You may ask why did I choose double rather than float as type to do the processing on? Perhaps float would be more efficient on your hardware? In this logic we have the justification for templates. 
+The code written for chapter 1 was passable C++ but obviously not good enough for library code. You may ask why did I choose double rather than float as type to do the processing on? Perhaps float would be more efficient on your hardware? In this logic we have the justification for templates. Here is how we convert the Network class to a template:
 ```c++
 	template<typename T>
 	class Network {

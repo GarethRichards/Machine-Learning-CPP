@@ -30,22 +30,56 @@ namespace NeuralNet {
 		T sx = sqrt(m.size2());
 		for (auto &e : m.data()) { e = d(gen) / sx; }
 	}
+	
 	// The sigmoid function.
 	template<typename T>
-	void sigmoid(ublas::vector<T> &v)
-	{
-		for (auto &iv : v) { iv = 1.0 / (1.0 + exp(-iv)); }
-	}
-	// Derivative of the sigmoid function.
-	template<typename T>
-	void sigmoid_prime(ublas::vector<T> &v)
-	{
-		for (auto &iv : v) {
-			iv = 1.0 / (1.0 + exp(-iv));
-			iv = iv*(1.0 - iv);
+	class SigmoidActivation {
+	public:
+		void Activation(ublas::vector<T> &v) const
+		{
+			for (auto &iv : v) { iv = 1.0 / (1.0 + exp(-iv)); }		
 		}
-	}
-
+		void ActivationPrime(ublas::vector<T> &v) const
+		{
+			for (auto &iv : v) {
+				iv = 1.0 / (1.0 + exp(-iv));
+				iv = iv*(1.0 - iv);
+			}
+		}
+	};
+	
+	// The tanh function.
+	template<typename T>
+	class TanhActivation {
+	public:
+		void Activation(ublas::vector<T> &v) const
+		{
+			for (auto &iv : v) { iv = (1+tanh(iv))/2; }		
+		}
+		void ActivationPrime(ublas::vector<T> &v) const
+		{
+			for (auto &iv : v) {
+				iv = pow(2.0/(exp(-iv)+exp(iv)),2.0)/2.0;
+			}
+		}
+	};
+	
+	// The ReLU function.
+	template<typename T>
+	class ReLUActivation {
+	public:
+		void Activation(ublas::vector<T> &v) const
+		{
+			for (auto &iv : v) { iv = std::max(0.0,iv); }		
+		}
+		void ActivationPrime(ublas::vector<T> &v) const
+		{
+			for (auto &iv : v) {
+				iv = iv<0.0 ? 0.0 : 1.0;
+			}
+		}
+	};	
+	
 	template<typename T>
 	class QuadraticCost {
 	public:
@@ -58,7 +92,7 @@ namespace NeuralNet {
 			const ublas::vector<T>& y) const
 		{
 			auto zp = z;
-			sigmoid_prime(zp);
+			this->ActivationPrime(zp);
 			return element_prod(a - y, zp);
 		}
 
@@ -96,8 +130,8 @@ namespace NeuralNet {
 
 	};
 
-	template<typename T, typename CostPolicy>
-	class Network : private CostPolicy {
+	template<typename T, typename CostPolicy, typename ActivationPolicy>
+	class Network : private CostPolicy, private ActivationPolicy{
 	private:
 		using BiasesVector = std::vector<ublas::vector<T>>;
 		using WeightsVector = std::vector<ublas::matrix<T>>;
@@ -151,7 +185,7 @@ namespace NeuralNet {
 			for (auto i = 0; i < nd.biases.size(); ++i)
 			{
 				ublas::vector<T> c = prod(nd.weights[i], a) + nd.biases[i];
-				sigmoid(c);
+				this->Activation(c);
 				a = c;
 			}
 			return a;
@@ -216,13 +250,14 @@ namespace NeuralNet {
 				ublas::vector<T> z = prod(nd.weights[i], activation) + nd.biases[i];
 				zs.push_back(z);
 				activation = z;
-				sigmoid(activation);
+				this->Activation(activation);
 				activations.push_back(activation);
 			}
 			// backward pass
 			auto iActivations = activations.end() - 1;
 			auto izs = zs.end() - 1;
-			sigmoid_prime(*izs);
+			
+			this->ActivationPrime(*izs);
 			ublas::vector<T> delta = this->cost_delta(*izs, *iActivations, y);
 			auto ib = nabla.biases.end() - 1;
 			auto iw = nabla.weights.end() - 1;
@@ -233,7 +268,7 @@ namespace NeuralNet {
 			while (iActivations != activations.begin())
 			{
 				izs--; iWeights--; iActivations--; ib--; iw--;
-				sigmoid_prime(*izs);
+				this->ActivationPrime(*izs);
 				delta = element_prod(prod(trans(*iWeights), delta), *izs);
 				*ib = delta;
 				*iw = outer_prod(delta, trans(*iActivations));

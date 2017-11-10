@@ -1,4 +1,14 @@
 ﻿#pragma once
+//
+//  Copyright (c) 2017
+//  Gareth Richards
+//
+// NeuralNet.h Definition for NeuralNet namespace contains the following classes
+// Network - main class containing the implemention of the NeuralNet
+// The following Cost policies can be applied to this class.
+// Cost Policies:
+//		QuadraticCost
+//		CrossEntropyCost
 
 #include <cmath>
 #include <iostream>
@@ -61,7 +71,6 @@ namespace NeuralNet {
 			sigmoid_prime(zp);
 			return element_prod(a - y, zp);
 		}
-
 	};
 
 	template<typename T>
@@ -93,7 +102,6 @@ namespace NeuralNet {
 			z; // not used by design
 			return a - y;
 		}
-
 	};
 
 	template<typename T, typename CostPolicy>

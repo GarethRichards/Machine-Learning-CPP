@@ -1,4 +1,18 @@
 ﻿#pragma once
+//
+//  Copyright (c) 2017
+//  Gareth Richards
+//
+// NeuralNet.h Definition for NeuralNet namespace contains the following classes
+// Network - main class containing the implemention of the NeuralNet
+// The following Cost policies can be applied to this class.
+// Cost Policies:
+//		QuadraticCost
+//		CrossEntropyCost
+// Activation Policies:
+//		SigmoidActivation
+//		TanhActivation
+//		ReLUActivation
 
 #include <cmath>
 #include <iostream>
@@ -113,7 +127,8 @@ namespace NeuralNet {
 			T total(0);
 			for (auto i = 0; i < a.size(); ++i)
 			{
-				total += -y(i)*log(a(i)) - (1 - y(i))*log(1 - a(i));
+				total += a(i) == 0.0 ? 0.0 : -y(i)*log(a(i));
+				total += a(i) >= 1.0 ? 0.0 : -(1.0 - y(i))*log(1.0 - a(i));
 			}
 			return total;
 		}
@@ -200,10 +215,11 @@ namespace NeuralNet {
 		//	network will be evaluated against the test data after each
 		//	epoch, and partial progress printed out.This is useful for
 		//	tracking progress, but slows things down substantially.
+		//	The lmbda parameter can be altered in the feedback function
 		void SGD(typename std::vector<TrainingData>::iterator td_begin,
 			typename std::vector<TrainingData>::iterator td_end,
 			int epochs, int mini_batch_size, T eta, T lmbda,
-			std::function<void(const Network &,int Epoc)> feedback)
+			std::function<void(const Network &,int Epoc,T &lmbda)> feedback)
 		{
 			for (auto j = 0; j < epochs; j++)
 			{
@@ -211,7 +227,7 @@ namespace NeuralNet {
 				for (auto td_i = td_begin; td_i < td_end; td_i += mini_batch_size) {
 					update_mini_batch(td_i, mini_batch_size, eta, lmbda, std::distance(td_begin, td_end));
 				}
-				feedback(*this, j);
+				feedback(*this, j, eta);
 			}
 		}
 		// Update the network's weights and biases by applying

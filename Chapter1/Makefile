@@ -1,19 +1,30 @@
-CC      = g++
-CFLAGS  = -O3 -IC:\Development\boost_1_65_1 -I"C:\Development\Machine Learning CPP\Loader"
-LDFLAGS = 
+appname := NeuralNet
 
-all: NeuralNet clean
+CC=gcc
+CXX=g++
+RM=rm -f
+CXXFLAGS=-O3 -I../../boost_1_65_1 -I../Loader
+LDFLAGS=-g 
+LDLIBS=
 
-NeuralNet: NeuralNet1.o
-	$(CC) -o $@ $^ $(LDFLAGS)
+SRCS := $(shell find . -name "*.cpp")
+OBJS  := $(patsubst %.cpp, %.o, $(SRCS))
 
-NeuralNet1.o: NeuralNet1.cpp 
-	$(CC) -c $(CFLAGS) $<
+all: $(appname) 
 
-.PHONY: clean cleanest
+$(appname): $(OBJS)
+	$(CXX) $(LDFLAGS) -o $(appname) $(OBJS) $(LDLIBS)
+
+depend: .depend
+
+.depend: $(SRCS)
+	$(RM) ./.depend
+	$(CXX) $(CXXFLAGS) -MM $^>>./.depend;
 
 clean:
-	del *.o
+	$(RM) $(OBJS)
 
-cleanest: clean
-	del NeuralNet.exe
+distclean: clean
+	$(RM) .depend
+
+include .depend

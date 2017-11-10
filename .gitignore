@@ -219,6 +219,12 @@ UpgradeLog*.htm
 *.bim.layout
 *.bim_*.settings
 
+# Depend files
+.depend
+
+# Object files
+*.o
+
 # Microsoft Fakes
 FakesAssemblies/
 

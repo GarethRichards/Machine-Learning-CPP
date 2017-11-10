@@ -75,10 +75,34 @@ To create an implementation of the Network using floats and CrossEntropyCost we 
 ```c++
     NeuralNet::Network<double, NeuralNet::CrossEntropyCost<double>> net({ 10, 748, 30, 10 });
 ```
-Naturally that’s not nice to type out or read C++ so we define it as a type
+Naturally that’s not nice to type out or read C++ so we define it as a type:
 ```c++
    using NetCrossEntropyCost=NeuralNet::Network<double, NeuralNet::CrossEntropyCost<double>>;
    NetCrossEntropyCost net({ 10, 748, 30, 10 });
 ```
+This helps when we want to obtain the definition of the training data:
+```c++
+	NetCrossEntropyCost::TrainingData
+	// Instead of
+	NeuralNet::Network<double, NeuralNet::CrossEntropyCost<double>>::TrainingData
+```
 
 ## Feedback function
+Users of the Network class need to see feedback from each round of fitting using a C++ lambda is a very clean approach to achieving this goal. This can be achieved by adding a std::function parameter to our interface.
+```c++
+		void SGD(typename std::vector<TrainingData>::iterator td_begin,
+			typename std::vector<TrainingData>::iterator td_end,
+			int epochs, int mini_batch_size, T eta, T lmbda,
+			std::function<void(const Network &,int Epoc)> feedback)
+```
+By passing a referece to the Network the user of the class can integerate the class as to the current cost and accuracy of the network as follows:
+```c++
+	NeuralNet1 net({ 784, 30, 10 });
+	net.SGD(td.begin(), td.end(), 30, 10, 0.5, Lmbda, [&testData,&td,Lmbda](const NeuralNet1 &network, int Epoch) {
+		std::cout << "Epoch " << Epoch << " : " << network.accuracy(testData.begin(), testData.end()) << " / " << testData.size() << std::endl;
+		std::cout << "Epoch " << Epoch << " : " << network.accuracy(td.begin(), td.end()) << " / " << td.size() << std::endl;
+		std::cout << "Cost : " << network.total_cost(td.begin(), td.end(), Lmbda) << std::endl;
+		std::cout << "Cost : " << network.total_cost(testData.begin(), testData.end(), Lmbda) << std::endl;
+	});
+```
+This I hope you will agree results in a nice clean interface for our class.

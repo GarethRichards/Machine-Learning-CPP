@@ -135,8 +135,8 @@ public:
 		std::vector<ublas::matrix<double>> nabla_w;
 		PopulateZeroWeightsAndBiases(nabla_b, nabla_w);
 		for (auto i = 0; i < mini_batch_size; ++i, td++) {
-			ublas::vector<double> x = td->first; // test data
-			ublas::vector<double> y = td->second; // expected result
+			auto &x = td->first; // test data
+			auto &y = td->second; // expected result
 			std::vector<ublas::vector<double>> delta_nabla_b;
 			std::vector<ublas::matrix<double>> delta_nabla_w;
 			PopulateZeroWeightsAndBiases(delta_nabla_b, delta_nabla_w);

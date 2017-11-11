@@ -240,8 +240,8 @@ namespace NeuralNet {
 			NetworkData nabla0(nd.m_sizes);
 			auto nabla=std::accumulate(td,td+mini_batch_size,nabla0,[=](NetworkData &nabla,const TrainingData &td)
 			{
-				ublas::vector<T> x = td.first; // test data
-				ublas::vector<T> y = td.second; // expected result
+				auto &x = td.first; // test data
+				auto &y = td.second; // expected result
 				NetworkData delta_nabla(this->nd.m_sizes);
 				backprop(x, y, delta_nabla);
 				nabla += delta_nabla;
@@ -313,7 +313,7 @@ namespace NeuralNet {
 				auto res = feedforward(td.first);
 				return cost + this->cost_fn(res, td.second);
 			});
-			size_t count = std::distance(td_begin, td_end);
+			auto count = std::distance(td_begin, td_end);
 			cost /= static_cast<double>(count);
 			T reg = std::accumulate(nd.weights.begin(), nd.weights.end(), 0.0, [lmbda, count](T reg,const ublas::matrix<T> &w)
 			{

@@ -175,8 +175,8 @@ namespace NeuralNet {
 			std::vector<ublas::matrix<T>> nabla_w;
 			PopulateZeroWeightsAndBiases(nabla_b, nabla_w);
 			for (auto i = 0; i < mini_batch_size; ++i, td++) {
-				ublas::vector<T> x = td->first; // test data
-				ublas::vector<T> y = td->second; // expected result
+				auto &x = td->first; // test data
+				auto &y = td->second; // expected result
 				std::vector<ublas::vector<T>> delta_nabla_b;
 				std::vector<ublas::matrix<T>> delta_nabla_w;
 				PopulateZeroWeightsAndBiases(delta_nabla_b, delta_nabla_w);

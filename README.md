@@ -19,14 +19,19 @@ tied to showcase some of the new features of Modern C++ here, STL algorithms and
 In chapter 1 A C++ version of network.py is constructed in Python style as all the code is in one cpp file.
 
 ## [Chapter 3](https://github.com/GarethRichards/Machine-Learning-CPP/blob/master/Chapter3.md)
-In chapter 3 I have a go at converting network2.py to C++ this time I put the code into a header file
+In chapter 3 I have a go at converting network2.py to better C++ this time I put the code into a header file
 construct some [policy classes](https://en.wikipedia.org/wiki/Policy-based_design) and demonstrate 
 how they can be used in Network2.cpp.
 
 ## [Future](https://github.com/GarethRichards/Machine-Learning-CPP/blob/master/Future.md)
 The code above is all single threaded and it is probably thanks to the compilers vectorization skills it is able to its job in a reasonable amount of time. C++ 17 the Parallel STL TR was introduced but unfortunately at the current
-time of writing this feature is not implemented int in either MSVC or GCC. If it works as advertised, it offers a great way for C++ developers to parallelise their code and only introduce minimal extra complexity.
+time of writing this feature is not implemented int in either MSVC or GCC. If it works as advertised, it offers a great way for C++ developers to 
+parallelise their code and only introduce minimal extra complexity.
+
+## Final thoughts
+I hope you enjoyed this excusrsion into both C++ and Machine learning. I started writing this code as I was unable to find any easly approachable 
+code for experimenting with Machine learing in C++. Once again Thanks to Michael Nielsen for writing such an accessable and readable book.
 
 Gareth Richards 
-03/11/2017
+14/11/2017
 

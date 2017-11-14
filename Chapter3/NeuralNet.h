@@ -11,7 +11,6 @@
 //		CrossEntropyCost
 
 #include <cmath>
-#include <iostream>
 #include <vector>
 #include <random>
 #include "boost\numeric\ublas\vector.hpp"

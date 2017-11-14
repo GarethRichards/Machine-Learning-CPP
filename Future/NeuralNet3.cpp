@@ -49,15 +49,23 @@ int main()
 		std::cout << "Cost : " << network.total_cost(testData.begin(), testData.end(), Lmbda) << std::endl;
 	});
 	*/
+	auto start = std::chrono::high_resolution_clock::now();
+	auto periodStart = std::chrono::high_resolution_clock::now();
 	NeuralNet1 net2({ 784, 30, 10 });
-	net2.SGD(td.begin(), td.end(), 30, 10, eta, Lmbda, [&Lmbda,&testData,&td](const NeuralNet1 &network, int Epoch, double &eta) {
-		// Lmbda can be manipulated in the feed back function
-		std::cout << "Epoch " << Epoch << std::endl;
-		std::cout << "Test accuracy     : " << network.accuracy(testData.begin(), testData.end()) << " / " << testData.size() << std::endl;
-		std::cout << "Training accuracy : " << network.accuracy(td.begin(), td.end()) << " / " << td.size() << std::endl;
-		std::cout << "Cost Training: " << network.total_cost(td.begin(), td.end(), Lmbda) << std::endl;
+	net2.SGD(td.begin(), td.end(), 30, 10, eta, Lmbda, [&periodStart,&Lmbda,&testData,&td](const NeuralNet1 &network, int Epoch, double &eta) {
+		// eta can be manipulated in the feed back function
+		auto end = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> diff = end - periodStart;
+		std::cout << "Epoch " << Epoch << " time taken: " << diff.count() << "\n";
+		std::cout << "Test accuracy     : " << network.accuracy(testData.begin(), testData.end()) << " / " << testData.size() << "\n";
+		std::cout << "Training accuracy : " << network.accuracy(td.begin(), td.end()) << " / " << td.size() << "\n";
+		std::cout << "Cost Training: " << network.total_cost(td.begin(), td.end(), Lmbda) << "\n";
 		std::cout << "Cost Test    : " << network.total_cost(testData.begin(), testData.end(), Lmbda) << std::endl;
+		eta *= .95;
+		periodStart = std::chrono::high_resolution_clock::now();
 	});
-
+	auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> diff = end - start;
+	std::cout << "Total time: " << diff.count() << "\n";
 	return 0;
 }

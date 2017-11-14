@@ -3,11 +3,11 @@ appname := NeuralNet3
 CC=gcc
 CXX=g++
 RM=rm -f
-CXXFLAGS=-O3 -I../../boost_1_65_1 -I../Loader
+CXXFLAGS=-O3 -I../../boost_1_65_1 -I../Loader -std=gnu++1z
 LDFLAGS=-g 
 LDLIBS=
 
-SRCS := $(shell find . -name "*.cpp")
+SRCS := $(shell find . -maxdepth 1 -name "*.cpp")
 OBJS  := $(patsubst %.cpp, %.o, $(SRCS))
 
 all: $(appname) 

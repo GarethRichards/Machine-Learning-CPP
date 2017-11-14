@@ -15,7 +15,6 @@
 //		ReLUActivation
 
 #include <cmath>
-#include <iostream>
 #include <vector>
 #include <random>
 #include "boost\numeric\ublas\vector.hpp"
@@ -223,7 +222,7 @@ namespace NeuralNet {
 		{
 			for (auto j = 0; j < epochs; j++)
 			{
-				std::random_shuffle(td_begin, td_end);
+				std::shuffle(td_begin, td_end, gen);
 				for (auto td_i = td_begin; td_i < td_end; td_i += mini_batch_size) {
 					update_mini_batch(td_i, mini_batch_size, eta, lmbda, std::distance(td_begin, td_end));
 				}
@@ -240,8 +239,9 @@ namespace NeuralNet {
 			NetworkData nabla0(nd.m_sizes);
 			auto nabla=std::accumulate(td,td+mini_batch_size,nabla0,[=](NetworkData &nabla,const TrainingData &td)
 			{
-				auto &x = td.first; // test data
-				auto &y = td.second; // expected result
+				//const auto& [ x, y ] = td; // test data x, expected result y
+				const auto &x=td.first;
+				const auto &y=td.second;
 				NetworkData delta_nabla(this->nd.m_sizes);
 				backprop(x, y, delta_nabla);
 				nabla += delta_nabla;
@@ -296,9 +296,12 @@ namespace NeuralNet {
 			typename std::vector<TrainingData>::iterator td_end) const
 		{
 			return count_if(td_begin, td_end, [=](const TrainingData &testElement) {
-				auto res = feedforward(testElement.first);
+				// const auto& [ x, y ] = testElement; // test data x, expected result y
+				const auto &x=testElement.first;	
+				const auto &y=testElement.second;
+				auto res = feedforward(x);
 				return (std::distance(res.begin(), max_element(res.begin(), res.end()))
-					== std::distance(testElement.second.begin(), max_element(testElement.second.begin(), testElement.second.end())));
+					== std::distance(y.cbegin(), max_element(y.cbegin(), y.cend())));
 			});
 		}
 		// Return the total cost for the data set ``data``.  
@@ -310,8 +313,11 @@ namespace NeuralNet {
 			T cost(0);
 			cost = std::accumulate(td_begin, td_end, cost, [=](T cost,const TrainingData &td)
 			{
-				auto res = feedforward(td.first);
-				return cost + this->cost_fn(res, td.second);
+				//const auto &[ testData, expectedResult ] = td;
+				const auto &testData = td.first;
+				const auto &expectedResult = td.second;
+				auto res = feedforward(testData);
+				return cost + this->cost_fn(res, expectedResult);
 			});
 			auto count = std::distance(td_begin, td_end);
 			cost /= static_cast<double>(count);

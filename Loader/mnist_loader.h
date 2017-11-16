@@ -19,11 +19,11 @@ public:
 	{
 		{
 			std::ifstream myFile(FileData, std::wifstream::in | std::wifstream::binary);
-			if (!myFile) throw("File does not exist");
+			if (!myFile) throw "File does not exist";
 			int MagicNumber; int nItems; int nRows; int nCol;
 			myFile.read((char *)&MagicNumber, 4);
 			MagicNumber=_byteswap_ulong(MagicNumber);
-			if (MagicNumber != 2049) "Throw magic number for training data incorrect";
+			if (MagicNumber != 2051) throw "Magic number for training data incorrect";
 			myFile.read((char *)&nItems, 4);
 			nItems = _byteswap_ulong(nItems);
 			myFile.read((char *)&nRows, 4);
@@ -44,11 +44,11 @@ public:
 		}
 		{
 			std::ifstream myFile(FileLabels, std::wifstream::in | std::wifstream::binary);
-			if (!myFile) throw("File does not exist");
+			if (!myFile) throw "File does not exist";
 			int MagicNumber; int nItems;
 			myFile.read((char *)&MagicNumber, 4);
 			MagicNumber = _byteswap_ulong(MagicNumber);
-			if (MagicNumber != 2051) "Throw magic number for label file incorrect";
+			if (MagicNumber != 2049) throw "Magic number for label file incorrect";
 			myFile.read((char *)&nItems, 4);
 			nItems = _byteswap_ulong(nItems);
 			for (int i = 0; i < nItems; ++i)

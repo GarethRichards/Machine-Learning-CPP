@@ -31,13 +31,19 @@ int main()
 						NeuralNet::CrossEntropyCost<double>,
 						NeuralNet::ReLUActivation<double>>;
 	std::vector<NeuralNet1::TrainingData> td, testData;
-	// Load training data
-	mnist_loader<double> loader("..\\Data\\train-images.idx3-ubyte",
-		"..\\Data\\train-labels.idx1-ubyte", td);
-	// Load test data
-	mnist_loader<double> loader2("..\\Data\\t10k-images.idx3-ubyte",
-		"..\\Data\\t10k-labels.idx1-ubyte", testData);
-
+	try {
+		// Load training data
+		mnist_loader<double> loader("..\\Data\\train-images.idx3-ubyte",
+			"..\\Data\\train-labels.idx1-ubyte", td);
+		// Load test data
+		mnist_loader<double> loader2("..\\Data\\t10k-images.idx3-ubyte",
+			"..\\Data\\t10k-labels.idx1-ubyte", testData);
+	}
+	catch (const char * Error)
+	{
+		std::cout << "Error: " << Error << "\n";
+		return 0;
+	}
 	double Lmbda = 0.1; //5.0;
 	double eta = 0.03;  //0.5
 	NeuralNet1 net({ 784, 30, 10 });

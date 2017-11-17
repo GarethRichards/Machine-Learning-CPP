@@ -19,21 +19,21 @@ public:
 	{
 		{
 			std::ifstream myFile(FileData, std::wifstream::in | std::wifstream::binary);
-			if (!myFile) throw("File does not exist");
-			int MagicNumber; int nItems; int nRows; int nCol;
+			if (!myFile) throw "File does not exist";
+			int MagicNumber(0); int nItems(0); int nRows(0); int nCol(0);
 			myFile.read((char *)&MagicNumber, 4);
 			MagicNumber=_byteswap_ulong(MagicNumber);
-			if (MagicNumber != 2049) "Throw magic number for training data incorrect";
+			if (MagicNumber != 2051) throw "Magic number for training data incorrect";
 			myFile.read((char *)&nItems, 4);
 			nItems = _byteswap_ulong(nItems);
 			myFile.read((char *)&nRows, 4);
 			nRows = _byteswap_ulong(nRows);
 			myFile.read((char *)&nCol, 4);
 			nCol = _byteswap_ulong(nCol);
-			unsigned char *buf = new unsigned char[nRows*nCol];
+			std::unique_ptr<unsigned char[]> buf(new unsigned char[nRows*nCol]);
 			for (auto i = 0; i < nItems; ++i)
 			{
-				myFile.read((char *)buf, nRows*nCol);
+				myFile.read((char *)buf.get(), nRows*nCol);
 				ublas::vector<T> data(nRows*nCol);
 				for (auto j = 0; j < nRows*nCol; ++j)
 				{
@@ -44,11 +44,11 @@ public:
 		}
 		{
 			std::ifstream myFile(FileLabels, std::wifstream::in | std::wifstream::binary);
-			if (!myFile) throw("File does not exist");
-			int MagicNumber; int nItems;
+			if (!myFile) throw "File does not exist";
+			int MagicNumber(0); int nItems(0);
 			myFile.read((char *)&MagicNumber, 4);
 			MagicNumber = _byteswap_ulong(MagicNumber);
-			if (MagicNumber != 2051) "Throw magic number for label file incorrect";
+			if (MagicNumber != 2049) throw "Magic number for label file incorrect";
 			myFile.read((char *)&nItems, 4);
 			nItems = _byteswap_ulong(nItems);
 			for (int i = 0; i < nItems; ++i)

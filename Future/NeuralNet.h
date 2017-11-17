@@ -145,7 +145,7 @@ namespace NeuralNet {
 		ublas::vector<T> cost_delta(const ublas::vector<T>& z, const ublas::vector<T>& a,
 			const ublas::vector<T>& y) const
 		{
-			z; // not used by design
+			(void)z; // not used by design
 			return a - y;
 		}
 

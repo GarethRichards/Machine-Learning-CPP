@@ -80,7 +80,8 @@ Modifying the library to add a new activation function, Wikipedia has a list [he
 ## To Do
 There are a number of improvements which could be made to the Library. If anyone wishes to extend their understanding of Machine learning concepts 
 and C++ I've created a list in what I believe is in order of difficulty of interesting changes which could be made:
-1. Different regularization schemes
-2. Dropout
-3. Convolutional neural networks 
+1. Add code to load and save a Network.
+2. Add different regularization schemes.
+3. Add a Dropout scheme to the code.
+5. Add Convolutional neural networks scheme to the library.
 

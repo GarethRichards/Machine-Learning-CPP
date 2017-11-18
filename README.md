@@ -29,7 +29,7 @@ converted into C++. This time I'm aiming to produce better C++. The main body of
 and I show how to construct some [policy classes](https://en.wikipedia.org/wiki/Policy-based_design) and how to use them in Network2.cpp.
 
 ## [Future](https://github.com/GarethRichards/Machine-Learning-CPP/blob/master/Future.md)
-The code above is all single threaded and it is probably thanks to the compilers vectorization skills it is able to its job in a reasonable amount of time. C++ 17 the Extensions for parallelism [TR](http://en.cppreference.com/w/cpp/experimental/parallelism)
+The code written so far all single threaded but thanks to the C++ compilers vectorization skills it is able to its job in a reasonable amount of time. C++ 17 the Extensions for parallelism [TR](http://en.cppreference.com/w/cpp/experimental/parallelism)
 was introduced but I demonstrate how to use it. I introduce Structured bindings into the codebase which increase conciseness and readability. Finally, I use some ideas outlined in Michael's book and add different activation functions to the library. 
 
 ## Final thoughts

@@ -20,6 +20,8 @@
 #include "boost\numeric\ublas\vector.hpp"
 #include "boost\numeric\ublas\matrix.hpp"
 #include <numeric> 
+#include <execution>
+#include <mutex>    
 
 using namespace boost::numeric;
 
@@ -32,15 +34,15 @@ namespace NeuralNet {
 	template<typename T>
 	void Randomize(ublas::vector<T> &vec)
 	{
-		std::normal_distribution<> d(0, 1);
+		std::normal_distribution<T> d(0, 1);
 		for (auto &e : vec) { e = d(gen); }
 	}
 	// Randomize as ublas matrix
 	template<typename T>
 	void Randomize(ublas::matrix<T> &m)
 	{
-		std::normal_distribution<> d(0, 1);
-		T sx = sqrt(m.size2());
+		std::normal_distribution<T> d(0, 1);
+		T sx = sqrt(static_cast<T>(m.size2()));
 		for (auto &e : m.data()) { e = d(gen) / sx; }
 	}
 	
@@ -67,7 +69,7 @@ namespace NeuralNet {
 	public:
 		void Activation(ublas::vector<T> &v) const
 		{
-			for (auto &iv : v) { iv = (1+tanh(iv))/2; }		
+			for (auto &iv : v) { iv = (1+tanh(iv))/2.0; }		
 		}
 		void ActivationPrime(ublas::vector<T> &v) const
 		{
@@ -83,12 +85,15 @@ namespace NeuralNet {
 	public:
 		void Activation(ublas::vector<T> &v) const
 		{
-			for (auto &iv : v) { iv = std::max(0.0,iv); }		
+			constexpr T zero = 0.0;
+			for (auto &iv : v) { iv = std::max(zero,iv); }
 		}
 		void ActivationPrime(ublas::vector<T> &v) const
 		{
+			constexpr T zero = 0.0;
+			constexpr T one = 1.0;
 			for (auto &iv : v) {
-				iv = iv<0.0 ? 0.0 : 1.0;
+				iv = iv<zero ? zero : one;
 			}
 		}
 	};	
@@ -123,11 +128,13 @@ namespace NeuralNet {
 		T cost_fn(const ublas::vector<T>& a,
 			const ublas::vector<T>& y) const
 		{
-			T total(0);
+			constexpr T zero = 0.0;
+			constexpr T one = 1.0;
+			T total(zero);
 			for (auto i = 0; i < a.size(); ++i)
 			{
-				total += a(i) == 0.0 ? 0.0 : -y(i)*log(a(i));
-				total += a(i) >= 1.0 ? 0.0 : -(1.0 - y(i))*log(1.0 - a(i));
+				total += a(i) == zero ? zero : -y(i)*log(a(i));
+				total += a(i) >= one ? zero : -(one - y(i))*log(one - a(i));
 			}
 			return total;
 		}
@@ -138,7 +145,7 @@ namespace NeuralNet {
 		ublas::vector<T> cost_delta(const ublas::vector<T>& z, const ublas::vector<T>& a,
 			const ublas::vector<T>& y) const
 		{
-			z; // not used by design
+			(void)z; // not used by design
 			return a - y;
 		}
 
@@ -149,7 +156,12 @@ namespace NeuralNet {
 	private:
 		using BiasesVector = std::vector<ublas::vector<T>>;
 		using WeightsVector = std::vector<ublas::matrix<T>>;
-		
+	public:
+		// Type definition of the Training data
+		using TrainingData = std::pair<ublas::vector<T>, ublas::vector<T>>;
+		using TrainingDataIterator = typename std::vector<TrainingData>::iterator;
+
+	private:
 		class NetworkData {
 		public:
 			std::vector<int> m_sizes;
@@ -161,7 +173,11 @@ namespace NeuralNet {
 			{
 				PopulateZeroWeightsAndBiases();
 			}
-			
+			NetworkData(const NetworkData& other)
+			{
+				biases = other.biases;
+				weights = other.weights;
+			}
 			void PopulateZeroWeightsAndBiases()
 			{
 				for (auto i = 1; i < m_sizes.size(); ++i)
@@ -204,8 +220,6 @@ namespace NeuralNet {
 			}
 			return a;
 		}
-		// Type definition of the Training data
-		using TrainingData = std::pair<ublas::vector<T>, ublas::vector<T>>;
 		//	Train the neural network using mini-batch stochastic
 		//	gradient descent.The training_data is a vector of pairs
 		// representing the training inputs and the desired
@@ -215,8 +229,8 @@ namespace NeuralNet {
 		//	epoch, and partial progress printed out.This is useful for
 		//	tracking progress, but slows things down substantially.
 		//	The lmbda parameter can be altered in the feedback function
-		void SGD(typename std::vector<TrainingData>::iterator td_begin,
-			typename std::vector<TrainingData>::iterator td_end,
+		void SGD(TrainingDataIterator td_begin,
+			TrainingDataIterator td_end,
 			int epochs, int mini_batch_size, T eta, T lmbda,
 			std::function<void(const Network &,int Epoc,T &lmbda)> feedback)
 		{
@@ -233,24 +247,26 @@ namespace NeuralNet {
 		//	gradient descent using backpropagation to a single mini batch.
 		//	The "mini_batch" is a list of tuples "(x, y)", and "eta"
 		//	is the learning rate."""
-		void update_mini_batch(typename std::vector<TrainingData>::iterator td, int mini_batch_size, T eta,
+		void update_mini_batch(TrainingDataIterator td, int mini_batch_size, T eta,
 			T lmbda, int n)
 		{
-			NetworkData nabla0(nd.m_sizes);
-			auto nabla=std::accumulate(td,td+mini_batch_size,nabla0,[=](NetworkData &nabla,const TrainingData &td)
+			NetworkData nabla(nd.m_sizes);
+			std::mutex mtx;           // mutex for critical section
+			for_each(std::execution::par, td, td + mini_batch_size, [=, &nabla, &mtx](const TrainingData &td)
 			{
 				//const auto& [ x, y ] = td; // test data x, expected result y
 				const auto &x=td.first;
 				const auto &y=td.second;
-				NetworkData delta_nabla(this->nd.m_sizes);
+				NetworkData delta_nabla(this->nd.m_sizes);				
 				backprop(x, y, delta_nabla);
+				// critical section 
+				std::lock_guard<std::mutex> guard(mtx);
 				nabla += delta_nabla;
-				return nabla;
 			});
 			for (auto i = 0; i < nd.biases.size(); ++i)
 			{
 				nd.biases[i] -= eta / mini_batch_size * nabla.biases[i];
-				nd.weights[i] = (1 - eta * (lmbda / n)) * nd.weights[i] - (eta / mini_batch_size) * nabla.weights[i];
+				nd.weights[i] = (1.0- eta * (lmbda / n)) * nd.weights[i] - (eta / mini_batch_size) * nabla.weights[i];
 			}
 		}
 		// Populates the gradient for the cost function for the biases in the vector nabla_b 
@@ -292,11 +308,11 @@ namespace NeuralNet {
 		}
 		// Return the vector of partial derivatives \partial C_x /
 		//	\partial a for the output activations.
-		int accuracy(typename std::vector<TrainingData>::iterator td_begin,
-			typename std::vector<TrainingData>::iterator td_end) const
+		int accuracy(TrainingDataIterator td_begin,
+			TrainingDataIterator td_end) const
 		{
 			return count_if(td_begin, td_end, [=](const TrainingData &testElement) {
-				// const auto& [ x, y ] = testElement; // test data x, expected result y
+				//const auto& [ x, y ] = testElement; // test data x, expected result y
 				const auto &x=testElement.first;	
 				const auto &y=testElement.second;
 				auto res = feedforward(x);
@@ -306,8 +322,8 @@ namespace NeuralNet {
 		}
 		// Return the total cost for the data set ``data``.  
 
-		double total_cost(typename std::vector<TrainingData>::iterator td_begin,
-			typename std::vector<TrainingData>::iterator td_end,
+		double total_cost(TrainingDataIterator td_begin,
+			TrainingDataIterator td_end,
 			T lmbda) const
 		{
 			T cost(0);
@@ -320,8 +336,9 @@ namespace NeuralNet {
 				return cost + this->cost_fn(res, expectedResult);
 			});
 			auto count = std::distance(td_begin, td_end);
-			cost /= static_cast<double>(count);
-			T reg = std::accumulate(nd.weights.begin(), nd.weights.end(), 0.0, [lmbda, count](T reg,const ublas::matrix<T> &w)
+			cost /= static_cast<T>(count);
+			constexpr T zero = 0.0;
+			T reg = std::accumulate(nd.weights.begin(), nd.weights.end(), zero, [lmbda, count](T reg,const ublas::matrix<T> &w)
 			{
 				return reg + .5 * (lmbda * pow(norm_frobenius(w), 2)) / static_cast<T>(count);
 			});

@@ -37,7 +37,7 @@ public:
 				ublas::vector<T> data(nRows*nCol);
 				for (auto j = 0; j < nRows*nCol; ++j)
 				{
-					data[j] = static_cast<T>(buf[j]) / 255.0;
+					data[j] = static_cast<T>(buf[j]) / static_cast<T>(255.0);
 				}
 				mnist_data.push_back(make_pair(data, ublas::zero_vector<T>(10)));
 			}

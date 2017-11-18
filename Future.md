@@ -42,8 +42,8 @@ library. The processing of the mini batch looked like an ideal case:
     }
 ```
 All I have written here is my very own version of the accumulate algorithm. But a little refactoring is required before I'm able to use
-std::accumulate. First I refactored the code to create a class NetworkData which contains the matrix of weights and the vector of 
-biases. This class can also hold the randomization functions and handle it's own creation. The finished product is here:
+std::accumulate. First, I refactored the code to create a class NetworkData which contains the matrix of weights and the vector of 
+biases. This class can also hold the randomization functions and handle its own creation. The finished product is here:
 ```c++
  NetworkData nabla0(nd.m_sizes);
     auto nabla=std::accumulate(td,td+mini_batch_size,nabla0,[=](NetworkData &nabla,const TrainingData &td)
@@ -55,12 +55,31 @@ biases. This class can also hold the randomization functions and handle it's own
         return nabla;
     });
 ```
-Much nicer and more readable, but as well as all this aesthetic goodness we are to be rewarded even more our hard work, just not yet. 
-For associative operations, which the addition operator is, we will soon be able to replace accumulate with [reduce](http://en.cppreference.com/w/cpp/algorithm/reduce) and 
-the reduce algorithm takes an [execution policy](http://en.cppreference.com/w/cpp/algorithm/execution_policy_tag_t) which will be
-able to execute this algorithm over all your CPU's and possible your GPU. 
-Sadly, this functionality is not yet available for either MSVC or GCC, hopefully we will see this 
-Implemented soon.
+Much nicer and more readable. C++11 introduced threads to the standard library, but if you needed to run a loop over many threads it 
+was easier to relay on soultions such as the [Parallel Patterns Library](https://msdn.microsoft.com/en-us/library/dd492418.aspx) rather
+than a standard library C++ soultion. C++17 gives us the [Extensions for parallelism](http://en.cppreference.com/w/cpp/experimental/parallelism)
+which allow you to set execution policies to your STL algoriths.
+Accumulate is not the simplist algorithm to parallize as you require guarded access to the item which keeping
+the running total. The go to algorithm for simple parallelism is for_each as I'm accumulating the result I need a mutex to
+avoid race conditions.
+```c++
+			NetworkData nabla(nd.m_sizes);
+			std::mutex mtx;           // mutex for critical section
+			for_each(std::execution::par, td, td + mini_batch_size, [=, &nabla, &mtx](const TrainingData &td)
+			{
+				const auto& [ x, y ] = td; // test data x, expected result y
+				NetworkData delta_nabla(this->nd.m_sizes);				
+				backprop(x, y, delta_nabla);
+				// critical section 
+				std::lock_guard<std::mutex> guard(mtx);
+				nabla += delta_nabla;
+			});
+
+```
+An important note: In this example the code in the loop before the critical section will takes a lot more clock cycles than the 
+addition after the critical section and many more cycles than the critical section code. It's important to remember the critical
+section is an expensive operation and the constant execution of the critical section will cause your application to run slower
+than the single threaded version. The golden rule here is test and measure.
 
 ## Activation functions
 The previous two versions of this code used the Sigmoid activation function. Clearly a Neural net library should provide a set of activation functions 
@@ -78,9 +97,9 @@ Where in this example 2 possible networks have been defined one using rectified 
 Modifying the library to add a new activation function, Wikipedia has a list [here](https://en.wikipedia.org/wiki/Activation_function).
 
 ## To Do
-There are a number of improvements which could be made to the Library. If anyone wishes to extend their understanding of Machine learning concepts 
+There are many improvements which could be made to the Library. If anyone wishes to extend their understanding of Machine learning concepts 
 and C++ I've created a list in what I believe is in order of difficulty of interesting changes which could be made:
-1. Different regularization schemes
-2. Dropout
-3. Convolutional neural networks 
-
+1. Add code to load and save a Network.
+2. Add different regularization schemes.
+3. Add a Dropout scheme to the code.
+5. Add Convolutional neural networks scheme to the library.

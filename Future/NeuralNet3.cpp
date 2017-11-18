@@ -27,16 +27,16 @@ using namespace NeuralNet;
 
 int main()
 {
-	using NeuralNet1 = NeuralNet::Network<double, 
-						NeuralNet::CrossEntropyCost<double>,
-						NeuralNet::ReLUActivation<double>>;
+	using NeuralNet1 = NeuralNet::Network<float, 
+						NeuralNet::CrossEntropyCost<float>,
+						NeuralNet::ReLUActivation<float>>;
 	std::vector<NeuralNet1::TrainingData> td, testData;
 	try {
 		// Load training data
-		mnist_loader<double> loader("..\\Data\\train-images.idx3-ubyte",
+		mnist_loader<float> loader("..\\Data\\train-images.idx3-ubyte",
 			"..\\Data\\train-labels.idx1-ubyte", td);
 		// Load test data
-		mnist_loader<double> loader2("..\\Data\\t10k-images.idx3-ubyte",
+		mnist_loader<float> loader2("..\\Data\\t10k-images.idx3-ubyte",
 			"..\\Data\\t10k-labels.idx1-ubyte", testData);
 	}
 	catch (const char * Error)
@@ -57,8 +57,8 @@ int main()
 	*/
 	auto start = std::chrono::high_resolution_clock::now();
 	auto periodStart = std::chrono::high_resolution_clock::now();
-	NeuralNet1 net2({ 784, 30, 10 });
-	net2.SGD(td.begin(), td.end(), 30, 10, eta, Lmbda, [&periodStart,&Lmbda,&testData,&td](const NeuralNet1 &network, int Epoch, double &eta) {
+	NeuralNet1 net2({ 784, 60, 10 });
+	net2.SGD(td.begin(), td.end(), 60, 100, eta, Lmbda, [&periodStart,&Lmbda,&testData,&td](const NeuralNet1 &network, int Epoch, float &eta) {
 		// eta can be manipulated in the feed back function
 		auto end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> diff = end - periodStart;

@@ -82,8 +82,28 @@ section is an expensive operation and the constant execution of the critical sec
 than the single threaded version. The golden rule here is test and measure.
 
 ## Activation functions
-The previous two versions of this code used the Sigmoid activation function. Clearly a Neural net library should provide a set of activation functions 
-and way to add activation functions. Again, one can use policy classes for this purpose and thus one can create Neural nets with many different features:
+The previous two versions of this code used the sigmoid activation function. Clearly a Neural net library should provide a set of activation functions and a way to add activation functions. An activation class needs to contain a definition of the activation function and its derivative. The activation function is used in the forward pass through the neural net and the derivative is needed to back propagate the errors through the network.
+This is the class for the sigmoid function:
+```c++
+// The sigmoid function.
+template <typename T> class SigmoidActivation {
+public:
+	void Activation(ublas::vector<T> &v) const {
+		constexpr T one = 1.0;
+		for (auto &iv : v) {
+			iv = one / (one + exp(-iv));
+		}
+	}
+	void ActivationPrime(ublas::vector<T> &v) const {
+		constexpr T one = 1.0;
+		for (auto &iv : v) {
+			iv = one / (one + exp(-iv));
+			iv = iv * (one - iv);
+		}
+	}
+};
+```
+Using different policy classes one can eaisly create Neural nets with different activation functions:
 ```c++
     using NeuralNet1 = NeuralNet::Network<double, 
                                 NeuralNet::CrossEntropyCost<double>,
@@ -93,8 +113,29 @@ and way to add activation functions. Again, one can use policy classes for this 
                                   NeuralNet::CrossEntropyCost<double>,
                                   NeuralNet::TanhActivation<double>>;
 ```
-Where in this example 2 possible networks have been defined one using rectified linear units and the other the Tanh activation function. If you fancy 
-Modifying the library to add a new activation function, Wikipedia has a list [here](https://en.wikipedia.org/wiki/Activation_function).
+In this example 2 possible networks have been defined one using rectified linear units and the other the Tanh activation function.  Modifying the library to add a new activation function is very simple. If your inspired enough to try, Wikipedia has a list [here](https://en.wikipedia.org/wiki/Activation_function), but remember the eta variable which is the size of the step we make during using the backpropagation needs to change when you change the activation function.
+
+## Changing the step parameter eta
+Another feature a neural net library needs is the ability to adjust the step size as the fitting progresses. In this C++ library a feedback function can be given to the SGD function which permits the user to change eta, the step size, as the fitting progresses.
+```c++
+NeuralNet1 net2({ 784, 60, 10 });
+net2.SGD(td.begin(), td.end(), 60, 100, eta, Lmbda,
+	[&periodStart, &Lmbda, &testData, &td](const NeuralNet1 &network, int Epoch, float &eta) {
+	// eta can be manipulated in the feed back function
+	auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> diff = end - periodStart;
+	std::cout << "Epoch " << Epoch << " time taken: " << diff.count() << "\n";
+	std::cout << "Test accuracy     : " << network.accuracy(testData.begin(), testData.end()) << " / "
+		<< testData.size() << "\n";
+	std::cout << "Training accuracy : " << network.accuracy(td.begin(), td.end()) << " / " << td.size()
+		<< "\n";
+	std::cout << "Cost Training: " << network.total_cost(td.begin(), td.end(), Lmbda) << "\n";
+	std::cout << "Cost Test    : " << network.total_cost(testData.begin(), testData.end(), Lmbda)
+		<< std::endl;
+	eta *= .95;
+	periodStart = std::chrono::high_resolution_clock::now();
+});
+```
 
 ## To Do
 There are many improvements which could be made to the Library. If anyone wishes to extend their understanding of Machine learning concepts 

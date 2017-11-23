@@ -13,7 +13,7 @@ by Stanford University on [Coursera](https://www.coursera.org). Finally, thanks 
 
 I've aimed to produce code as simple and concise as possible using only the features in the standard C++17, but as
 the standard library does not contain a linear algebra library I've used the [uBLAS](http://www.boost.org). I've
-tied to showcase some of the new features of Modern C++ here, STL algorithms and lambda functions. With just a couple of 100 lines of code we can produce a program which can recognize handwritten digits.
+tied to showcase some of the new features of Modern C++ here, STL algorithms and lambda functions. With just a couple of 100 lines of code we can produce a program which can recognize handwritten digits and implements the standard learning algorithm for neural networks, known as stochastic gradient descent.
 
 ## [Chapter 1](https://github.com/GarethRichards/Machine-Learning-CPP/blob/master/Chapter1.md)
 In chapter 1 A C++ version of network.py is constructed in Python style as all the code is in one cpp file. The purpose of this version is to create code similar to the python code, rather than the best C++ possible, to allow you to read [Using neural nets to recognize handwritten digits](http://neuralnetworksanddeeplearning.com/chap1.html) and follow the online book with C++.

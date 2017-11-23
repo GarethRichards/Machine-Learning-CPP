@@ -1,4 +1,4 @@
-# Machine-Learning-C++
+# Machine Learning with C++
 
 The C++ code in this repository is a hopefully accurate port of the python code in Michael Nielsen's book 
 [Neural Networks and Deep Learning](http://neuralnetworksanddeeplearning.com/). I recommend you read 

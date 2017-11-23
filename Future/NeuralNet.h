@@ -50,14 +50,16 @@ namespace NeuralNet {
 	template <typename T> class SigmoidActivation {
 	public:
 		void Activation(ublas::vector<T> &v) const {
+			constexpr T one = 1.0;
 			for (auto &iv : v) {
-				iv = 1.0 / (1.0 + exp(-iv));
+				iv = one / (one + exp(-iv));
 			}
 		}
 		void ActivationPrime(ublas::vector<T> &v) const {
+			constexpr T one = 1.0;
 			for (auto &iv : v) {
-				iv = 1.0 / (1.0 + exp(-iv));
-				iv = iv * (1.0 - iv);
+				iv = one / (one + exp(-iv));
+				iv = iv * (one - iv);
 			}
 		}
 	};
@@ -66,13 +68,16 @@ namespace NeuralNet {
 	template <typename T> class TanhActivation {
 	public:
 		void Activation(ublas::vector<T> &v) const {
+			constexpr T one = 1.0;
+			constexpr T two = 2.0;
 			for (auto &iv : v) {
-				iv = (1 + tanh(iv)) / 2.0;
+				iv = (one + tanh(iv)) / two;
 			}
 		}
 		void ActivationPrime(ublas::vector<T> &v) const {
+			constexpr T two = 2.0;
 			for (auto &iv : v) {
-				iv = pow(2.0 / (exp(-iv) + exp(iv)), 2.0) / 2.0;
+				iv = pow(two / (exp(-iv) + exp(iv)), two) / two;
 			}
 		}
 	};

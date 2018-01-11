@@ -227,10 +227,7 @@ namespace NeuralNet {
 			NetworkData nabla(nd.m_sizes);
 			std::mutex mtx; // mutex for critical section
 			for_each(std::execution::par, td, td + mini_batch_size, [=, &nabla, &mtx](const TrainingData &td) {
-				// const auto& [ x, y ] = td; // test data x, expected
-				// result y
-				const auto &x = td.first;
-				const auto &y = td.second;
+				const auto& [ x, y ] = td; // test data x, expected result y
 				NetworkData delta_nabla(this->nd.m_sizes);
 				backprop(x, y, delta_nabla);
 				// critical section
@@ -284,10 +281,7 @@ namespace NeuralNet {
 		//	\partial a for the output activations.
 		int accuracy(TrainingDataIterator td_begin, TrainingDataIterator td_end) const {
 			return count_if(td_begin, td_end, [=](const TrainingData &testElement) {
-				// const auto& [ x, y ] = testElement; // test data x, expected
-				// result y
-				const auto &x = testElement.first;
-				const auto &y = testElement.second;
+				const auto& [ x, y ] = testElement; // test data x, expected result y
 				auto res = feedforward(x);
 				return (std::distance(res.begin(), max_element(res.begin(), res.end())) ==
 					std::distance(y.cbegin(), max_element(y.cbegin(), y.cend())));
@@ -298,9 +292,7 @@ namespace NeuralNet {
 		double total_cost(TrainingDataIterator td_begin, TrainingDataIterator td_end, T lmbda) const {
 			T cost(0);
 			cost = std::accumulate(td_begin, td_end, cost, [=](T cost, const TrainingData &td) {
-				// const auto &[ testData, expectedResult ] = td;
-				const auto &testData = td.first;
-				const auto &expectedResult = td.second;
+				const auto &[ testData, expectedResult ] = td;
 				auto res = feedforward(testData);
 				return cost + this->cost_fn(res, expectedResult);
 			});

@@ -22,6 +22,7 @@
 #include <numeric>
 #include <random>
 #include <vector>
+#include <functional>
 
 using namespace boost::numeric;
 
@@ -151,6 +152,7 @@ namespace NeuralNet {
 		// Type definition of the Training data
 		using TrainingData = std::pair<ublas::vector<T>, ublas::vector<T>>;
 		using TrainingDataIterator = typename std::vector<TrainingData>::iterator;
+		using TrainingDataVector = std::vector<TrainingData>;
 
 	private:
 		class NetworkData {
@@ -176,6 +178,10 @@ namespace NeuralNet {
 					weights[j] += rhs.weights[j];
 				}
 				return *this;
+			}
+			friend NetworkData operator+(NetworkData lhs, const NetworkData& rhs) {
+				lhs += rhs; // reuse compound assignment
+				return lhs;
 			}
 			void Randomize() {
 				for (auto &b : biases)
@@ -225,15 +231,13 @@ namespace NeuralNet {
 		//	is the learning rate."""
 		void update_mini_batch(TrainingDataIterator td, int mini_batch_size, T eta, T lmbda, int n) {
 			NetworkData nabla(nd.m_sizes);
-			std::mutex mtx; // mutex for critical section
-			for_each(std::execution::par, td, td + mini_batch_size, [=, &nabla, &mtx](const TrainingData &td) {
-				const auto& [ x, y ] = td; // test data x, expected result y
+			nabla = std::transform_reduce(std::execution::par, td, td + mini_batch_size, nabla, std::plus<NetworkData>(), [=](const TrainingData& td) {
+				const auto& [x, y] = td; // test data x, expected result y
 				NetworkData delta_nabla(this->nd.m_sizes);
 				backprop(x, y, delta_nabla);
-				// critical section
-				std::lock_guard<std::mutex> guard(mtx);
-				nabla += delta_nabla;
-			});
+				return delta_nabla;
+				});
+
 			for (auto i = 0; i < nd.biases.size(); ++i) {
 				nd.biases[i] -= eta / mini_batch_size * nabla.biases[i];
 				nd.weights[i] = (1.0 - eta * (lmbda / n)) * nd.weights[i] - (eta / mini_batch_size) * nabla.weights[i];
@@ -280,23 +284,24 @@ namespace NeuralNet {
 		// Return the vector of partial derivatives \partial C_x /
 		//	\partial a for the output activations.
 		int accuracy(TrainingDataIterator td_begin, TrainingDataIterator td_end) const {
-			return count_if(td_begin, td_end, [=](const TrainingData &testElement) {
-				const auto& [ x, y ] = testElement; // test data x, expected result y
+			return count_if(std::execution::par, td_begin, td_end, [=](const TrainingData& testElement) {
+				const auto& [x, y] = testElement; // test data x, expected result y
 				auto res = feedforward(x);
 				return (std::distance(res.begin(), max_element(res.begin(), res.end())) ==
 					std::distance(y.cbegin(), max_element(y.cbegin(), y.cend())));
-			});
+				});
 		}
 		// Return the total cost for the data set ``data``.
 
 		double total_cost(TrainingDataIterator td_begin, TrainingDataIterator td_end, T lmbda) const {
-			T cost(0);
-			cost = std::accumulate(td_begin, td_end, cost, [=](T cost, const TrainingData &td) {
-				const auto &[ testData, expectedResult ] = td;
-				auto res = feedforward(testData);
-				return cost + this->cost_fn(res, expectedResult);
-			});
 			auto count = std::distance(td_begin, td_end);
+			T cost(0);
+			cost = std::transform_reduce(std::execution::par, td_begin, td_end, cost, std::plus<>(), [=](const TrainingData& td) {
+				const auto& [testData, expectedResult] = td;
+				auto res = feedforward(testData);
+				return this->cost_fn(res, expectedResult);
+				});
+
 			cost /= static_cast<T>(count);
 			constexpr T zero = 0.0;
 			T reg = std::accumulate(nd.weights.begin(), nd.weights.end(), zero,

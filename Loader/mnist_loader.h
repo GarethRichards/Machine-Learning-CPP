@@ -18,9 +18,9 @@ public:
 				if (!myFile)
 					throw "File does not exist";
 				int MagicNumber(0);
-				int nItems(0);
-				int nRows(0);
-				int nCol(0);
+                unsigned int nItems(0);
+                unsigned int nRows(0);
+                unsigned int nCol(0);
 				myFile.read((char *)&MagicNumber, 4);
 				MagicNumber = _byteswap_ulong(MagicNumber);
 				if (MagicNumber != 2051)
@@ -32,10 +32,10 @@ public:
 				myFile.read((char *)&nCol, 4);
 				nCol = _byteswap_ulong(nCol);
 				std::unique_ptr<unsigned char[]> buf(new unsigned char[nRows * nCol]);
-				for (auto i = 0; i < nItems; ++i) {
+                for (unsigned int i = 0; i < nItems; ++i) {
 					myFile.read((char *)buf.get(), nRows * nCol);
 					ublas::vector<T> data(nRows * nCol);
-					for (auto j = 0; j < nRows * nCol; ++j) {
+                    for (unsigned int j = 0; j < nRows * nCol; ++j) {
 						data[j] = static_cast<T>(buf[j]) / static_cast<T>(255.0);
 					}
 					mnist_data.push_back(make_pair(data, ublas::zero_vector<T>(10)));

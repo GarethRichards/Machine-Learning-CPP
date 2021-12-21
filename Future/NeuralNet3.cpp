@@ -41,14 +41,13 @@ int main() {
 		std::cout << "Error: " << Error << "\n";
 		return 0;
 	}
-	double Lmbda = 0.1; // 5.0;
-	double eta = 0.03;  // 0.5
-	NeuralNet1 net({ 784, 30, 10 });
+	float Lmbda = 0.1f; // 5.0;
+	float eta = 0.03f;  // 0.5
 
 	auto start = std::chrono::high_resolution_clock::now();
 	auto periodStart = std::chrono::high_resolution_clock::now();
-	NeuralNet1 net2({ 784, 60, 10 });
-	net2.SGD(td.begin(), td.end(), 60, 100, eta, Lmbda,
+	NeuralNet1 net({ 784, 80, 20, 10 });
+	net.SGD(td.begin(), td.end(), 20, 100, eta, Lmbda,
 		[&periodStart, &Lmbda, &testData, &td](const NeuralNet1 &network, int Epoch, float &eta) {
 		// eta can be manipulated in the feed back function
 		auto end = std::chrono::high_resolution_clock::now();
@@ -61,11 +60,33 @@ int main() {
 		std::cout << "Cost Training: " << network.total_cost(td.begin(), td.end(), Lmbda) << "\n";
 		std::cout << "Cost Test    : " << network.total_cost(testData.begin(), testData.end(), Lmbda)
 			<< std::endl;
-		eta *= .95;
+		eta *= .95f;
 		periodStart = std::chrono::high_resolution_clock::now();
 	});
 	auto end = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> diff = end - start;
 	std::cout << "Total time: " << diff.count() << "\n";
+	// write out net
+    {
+        std::ofstream f("./net-save.txt", std::ios::binary | std::ios::out);
+        f << net;
+        f.close();
+    }
+	// read it and use it
+    NeuralNet1 net2;
+    { 
+		std::fstream f("./net-save.txt", std::ios::binary | std::ios::in); 
+		if (!f.is_open()) {
+			std::cout << "failed to open ./net-save.txt\n";
+			return 0;
+        } else {
+            f >> net2;
+        }
+		// test total cost should be same as before
+        std::cout << "Cost Test    : " << net2.total_cost(testData.begin(), testData.end(), Lmbda) << "\n";   
+		auto x = net2.result(net2.feedforward(testData[0].first));
+        auto y = net2.result(testData[2].second);
+        std::cout << "looks like a " << x << " is a " << y << "\n";
+	}
 	return 0;
 }

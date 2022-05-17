@@ -14,8 +14,8 @@
 //		TanhActivation
 //		ReLUActivation
 
-#include "boost\numeric\ublas\matrix.hpp"
-#include "boost\numeric\ublas\vector.hpp"
+#include "boost/numeric/ublas/matrix.hpp"
+#include "boost/numeric/ublas/vector.hpp"
 #include <cmath>
 #include <execution>
 #include <mutex>
@@ -234,7 +234,7 @@ namespace NeuralNet {
 		//	is the learning rate."""
 		void update_mini_batch(TrainingDataIterator td, int mini_batch_size, T eta, T lmbda, auto n) {
 			NetworkData nabla(nd.m_sizes);
-			nabla = std::transform_reduce(std::execution::par, td, td + mini_batch_size, nabla, std::plus<NetworkData>(), [=](const TrainingData& td) {
+			nabla = std::transform_reduce(std::execution::par, td, td + mini_batch_size, nabla, std::plus<NetworkData>(), [this](const TrainingData& td) {
 				const auto& [x, y] = td; // test data x, expected result y
 				NetworkData delta_nabla(this->nd.m_sizes);
 				backprop(x, y, delta_nabla);
@@ -290,7 +290,7 @@ namespace NeuralNet {
 		// Return the vector of partial derivatives \partial C_x /
 		//	\partial a for the output activations.
 		auto accuracy(TrainingDataIterator td_begin, TrainingDataIterator td_end) const {
-			return count_if(std::execution::par, td_begin, td_end, [=](const TrainingData& testElement) {
+			return count_if(std::execution::par, td_begin, td_end, [this](const TrainingData& testElement) {
 				const auto& [x, y] = testElement; // test data x, expected result y
 				auto res = feedforward(x);
                 return result(res) == result(y);				
@@ -301,7 +301,7 @@ namespace NeuralNet {
 		T total_cost(TrainingDataIterator td_begin, TrainingDataIterator td_end, T lmbda) const {
 			auto count = std::distance(td_begin, td_end);
 			T cost(0);
-			cost = std::transform_reduce(std::execution::par, td_begin, td_end, cost, std::plus<>(), [=](const TrainingData& td) {
+			cost = std::transform_reduce(std::execution::par, td_begin, td_end, cost, std::plus<>(), [this](const TrainingData& td) {
 				const auto& [testData, expectedResult] = td;
 				auto res = feedforward(testData);
 				return this->cost_fn(res, expectedResult);

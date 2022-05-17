@@ -1,6 +1,14 @@
 #pragma once
 
-#include "boost\numeric\ublas\vector.hpp"
+#include <stdlib.h>
+#ifdef _MSC_VER
+#define bswap_32(x) _byteswap_ulong(x)
+#else
+#define bswap_32(x) __builtin_bswap32(x)
+#endif
+
+
+#include "boost/numeric/ublas/vector.hpp"
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -22,15 +30,15 @@ public:
                 unsigned int nRows(0);
                 unsigned int nCol(0);
 				myFile.read((char *)&MagicNumber, 4);
-				MagicNumber = _byteswap_ulong(MagicNumber);
+                MagicNumber = bswap_32(MagicNumber);
 				if (MagicNumber != 2051)
 					throw "Magic number for training data incorrect";
 				myFile.read((char *)&nItems, 4);
-				nItems = _byteswap_ulong(nItems);
+				nItems = bswap_32(nItems);
 				myFile.read((char *)&nRows, 4);
-				nRows = _byteswap_ulong(nRows);
+				nRows = bswap_32(nRows);				
 				myFile.read((char *)&nCol, 4);
-				nCol = _byteswap_ulong(nCol);
+				nCol = bswap_32(nCol);
 				std::unique_ptr<unsigned char[]> buf(new unsigned char[nRows * nCol]);
                 for (unsigned int i = 0; i < nItems; ++i) {
 					myFile.read((char *)buf.get(), nRows * nCol);
@@ -48,11 +56,11 @@ public:
 				int MagicNumber(0);
 				int nItems(0);
 				myFile.read((char *)&MagicNumber, 4);
-				MagicNumber = _byteswap_ulong(MagicNumber);
+				MagicNumber = bswap_32(MagicNumber);
 				if (MagicNumber != 2049)
 					throw "Magic number for label file incorrect";
 				myFile.read((char *)&nItems, 4);
-				nItems = _byteswap_ulong(nItems);
+				nItems = bswap_32(nItems);				
 				for (int i = 0; i < nItems; ++i) {
 					char data;
 					myFile.read(&data, 1);

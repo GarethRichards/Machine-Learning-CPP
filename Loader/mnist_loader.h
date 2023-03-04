@@ -60,7 +60,7 @@ public:
 				if (MagicNumber != 2049)
 					throw "Magic number for label file incorrect";
 				myFile.read((char *)&nItems, 4);
-				nItems = bswap_32(nItems);				
+				nItems = bswap_32(nItems); 				
 				for (int i = 0; i < nItems; ++i) {
 					char data;
 					myFile.read(&data, 1);

@@ -28,23 +28,6 @@
 using namespace boost::numeric;
 
 namespace NeuralNet {
-	// Set up the random number generator
-	std::random_device rd;
-	std::mt19937 gen(rd());
-
-	// Randomize as ublas vector
-	template <typename T> 
-	void Randomize(ublas::vector<T> &vec) {
-		std::normal_distribution<T> d(0, 1);
-        std::ranges::for_each(vec, [&](T& e) { e = d(gen); });
-	}
-	// Randomize as ublas matrix
-	template <typename T> 
-	void Randomize(ublas::matrix<T> &m) {
-		std::normal_distribution<T> d(0, 1);
-		T sx = sqrt(static_cast<T>(m.size2()));
-        std::ranges::for_each(m.data(), [&](auto &e) { e = d(gen) / sx; });
-	}
 
 	// The sigmoid function.
 	template <typename T> 
@@ -147,7 +130,7 @@ namespace NeuralNet {
 	template <typename T, typename CostPolicy, typename ActivationPolicy>
     requires std::floating_point<T>
 	class Network : private CostPolicy, private ActivationPolicy {
-	private:
+    private:
 		using BiasesVector = std::vector<ublas::vector<T>>;
 		using WeightsVector = std::vector<ublas::matrix<T>>;
 
@@ -159,20 +142,23 @@ namespace NeuralNet {
 
 	protected:
 		class NetworkData {
-		public:
-			std::vector<int> m_sizes;
-			BiasesVector biases;
-			WeightsVector weights;
-			NetworkData() {}
-			NetworkData(const std::vector<int> &m_sizes) : m_sizes(m_sizes) { PopulateZeroWeightsAndBiases(); }
-			NetworkData(const NetworkData &other) {
-				biases = other.biases;
-				weights = other.weights;
+        public:
+            std::vector<size_t> m_sizes;
+            BiasesVector biases;
+            WeightsVector weights;
+            std::mt19937 gen;
+
+			NetworkData() { 
+				std::random_device r;
+				gen = std::mt19937(r());
 			}
-			void PopulateZeroWeightsAndBiases() {
+            explicit NetworkData(const std::vector<size_t> &m_sizes) : m_sizes(m_sizes) 
+				{ PopulateZeroWeightsAndBiases(); }
+            ~NetworkData() = default;
+            void PopulateZeroWeightsAndBiases() {
 				for (auto i = 1; i < m_sizes.size(); ++i) {
-					biases.push_back(ublas::zero_vector<T>(m_sizes[i]));
-					weights.push_back(ublas::zero_matrix<T>(m_sizes[i], m_sizes[i - 1]));
+                    biases.emplace_back(ublas::zero_vector<T>{m_sizes[i]});
+                    weights.emplace_back(ublas::zero_matrix<T>{m_sizes[i], m_sizes[i - 1]});
 				}
 			}
 			NetworkData &operator+=(const NetworkData &rhs) {
@@ -188,16 +174,26 @@ namespace NeuralNet {
             }
 			void Randomize() {
 				for (auto &b : biases)
-					NeuralNet::Randomize(b);
+					RandomizeVector(b);
 				for (auto &w : weights)
-					NeuralNet::Randomize(w);
+                    RandomizeMatrix(w);
 			}
+            void RandomizeVector(ublas::vector<T> &vec) {
+                    std::normal_distribution<T> d(0, 1);
+                    std::ranges::for_each(vec, [&](T &e) { e = d(gen); });
+            }
+            // Randomize as ublas matrix
+            void RandomizeMatrix(ublas::matrix<T> &m) {
+                    std::normal_distribution<T> d(0, 1);
+                    T sx = sqrt(static_cast<T>(m.size2()));
+                    std::ranges::for_each(m.data(), [&](auto &e) { e = d(gen) / sx; });
+            }
 		};
-
+     private:                
 		NetworkData nd;
 	public:
-      Network() {};
-      Network(const std::vector<int> &sizes) : nd(sizes) { nd.Randomize(); }
+      Network() = default;
+      explicit Network(const std::vector<size_t> &sizes) : nd(sizes) { nd.Randomize(); }
 		// Initalize the array of Biases and Matrix of weights
 
 		// Returns the output of the network if the input is a
@@ -221,7 +217,7 @@ namespace NeuralNet {
 		void SGD(TrainingDataIterator td_begin, TrainingDataIterator td_end, int epochs, int mini_batch_size, T eta,
 			T lmbda, std::function<void(const Network &, int Epoc, T &lmbda)> feedback) {
 			for (auto j = 0; j < epochs; j++) {
-				std::shuffle(td_begin, td_end, gen);
+				std::shuffle(td_begin, td_end, nd.gen);
 				for (auto td_i = td_begin; td_i < td_end; td_i += mini_batch_size) {
 					update_mini_batch(td_i, mini_batch_size, eta, lmbda, std::distance(td_begin, td_end));
 				}
@@ -234,8 +230,8 @@ namespace NeuralNet {
 		//	is the learning rate."""
 		void update_mini_batch(TrainingDataIterator td, int mini_batch_size, T eta, T lmbda, auto n) {
 			NetworkData nabla(nd.m_sizes);
-			nabla = std::transform_reduce(std::execution::par, td, td + mini_batch_size, nabla, std::plus<NetworkData>(), [this](const TrainingData& td) {
-				const auto& [x, y] = td; // test data x, expected result y
+			nabla = std::transform_reduce(std::execution::par, td, td + mini_batch_size, nabla, std::plus<NetworkData>(), [this](const TrainingData& tdIn) {
+				const auto &[x, y] = tdIn; // test data x, expected result y
 				NetworkData delta_nabla(this->nd.m_sizes);
 				backprop(x, y, delta_nabla);
 				return delta_nabla;
@@ -311,15 +307,15 @@ namespace NeuralNet {
 			constexpr T zero = 0.0;
             constexpr T half = 0.5;
 			T reg = std::accumulate(nd.weights.begin(), nd.weights.end(), zero,
-				[lmbda, count](T reg, const ublas::matrix<T> &w) {
-                return reg + half * (lmbda * pow(norm_frobenius(w), 2)) / static_cast<T>(count);
+				[lmbda, count](T regC, const ublas::matrix<T> &w) {
+                return regC + half * (lmbda * pow(norm_frobenius(w), 2)) / static_cast<T>(count);
 			});
 			return cost + reg;
 		}
 
         friend std::ostream &operator<<(std::ostream &os, const Network &net) {
             os << net.nd.m_sizes.size() << " ";
-            std::ranges::for_each(net.nd.m_sizes, [&](int x) { os << x << " "; });
+            std::ranges::for_each(net.nd.m_sizes, [&](size_t x) { os << x << " "; });
             for (auto x = 0; x < net.nd.m_sizes.size() - 1; ++x) {
                 std::ranges::for_each(net.nd.biases[x], [&](T y) { os << y << " "; });
                 std::ranges::for_each(net.nd.weights[x].data(), [&](T y) { os << y << " "; });			

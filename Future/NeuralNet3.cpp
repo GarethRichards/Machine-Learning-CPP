@@ -16,8 +16,8 @@
 #include "stdafx.h"
 
 #include "NeuralNet.h"
-#include "boost\numeric\ublas\matrix.hpp"
-#include "boost\numeric\ublas\vector.hpp"
+#include "boost/numeric/ublas/matrix.hpp"
+#include "boost/numeric/ublas/vector.hpp"
 #include "mnist_loader.h"
 #include <chrono>
 #include <cmath>
@@ -41,14 +41,14 @@ int main() {
 		std::cout << "Error: " << Error << "\n";
 		return 0;
 	}
-	float Lmbda = 0.1f; // 5.0;
-	float eta = 0.03f;  // 0.5
+	float Lmbda = 0.1f; // try 5.0;
+	float eta = 0.03f;  // try 0.5
 
 	auto start = std::chrono::high_resolution_clock::now();
 	auto periodStart = std::chrono::high_resolution_clock::now();
-	NeuralNet1 net({ 784, 80, 20, 10 });
+	NeuralNet1 net({ 784, 100, 60, 10 });
 	net.SGD(td.begin(), td.end(), 20, 100, eta, Lmbda,
-		[&periodStart, &Lmbda, &testData, &td](const NeuralNet1 &network, int Epoch, float &eta) {
+		[&periodStart, &Lmbda, &testData, &td](const NeuralNet1 &network, int Epoch, float &currenctEta) {
 		// eta can be manipulated in the feed back function
 		auto end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> diff = end - periodStart;
@@ -60,7 +60,7 @@ int main() {
 		std::cout << "Cost Training: " << network.total_cost(td.begin(), td.end(), Lmbda) << "\n";
 		std::cout << "Cost Test    : " << network.total_cost(testData.begin(), testData.end(), Lmbda)
 			<< std::endl;
-		eta *= .95f;
+        currenctEta *= .95f;
 		periodStart = std::chrono::high_resolution_clock::now();
 	});
 	auto end = std::chrono::high_resolution_clock::now();

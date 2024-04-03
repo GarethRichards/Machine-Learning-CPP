@@ -250,24 +250,24 @@ class Network : private CostPolicy, private ActivationPolicy {
 
     // Returns the output of the network if the input is a
     void feedforward(nvec in_vec, nvec result) const {
-        std::vector<T> res_data(nd.max_vec_size);
-        std::vector<T> res_data_in(nd.max_vec_size);
-        nvec res(res_data.data(), (size_t)nd.m_sizes[1], 1);
-        linalg::matrix_product(nd.weights[0], in_vec, res);
-        linalg::add(res, nd.biases[0], res);
-        // res = linalg::transposed(res);
-        this->Activation(res);
-        for (auto i = 1; i < nd.biases.size(); ++i) {
-            res_data_in = res_data;
-            res = nvec(res_data_in.data(), nd.m_sizes[i + 1], 1);
-            nvec res_in = nvec(res_data_in.data(), nd.m_sizes[i], 1);
+        std::vector<T> res_data(nd.tot_vec_size);
+        size_t start_index = nd.m_sizes[0];
+        size_t prev_index = 0;
+        for (auto i = 0; i < nd.biases.size(); ++i) {
+            nvec resd(&res_data[start_index], nd.m_sizes[i + 1], 1);
+            nvec &res = resd;
+            if (i == nd.biases.size() - 1)
+                res = result;
+            nvec res_ind(&res_data[prev_index], nd.m_sizes[i], 1);
+            nvec &res_in = res_ind;
+            if (i == 0)
+                res_in = in_vec;
             linalg::matrix_product(nd.weights[i], res_in, res);
             linalg::add(res, nd.biases[i], res);
-            // res = linalg::transposed(res);
             this->Activation(res);
+            prev_index = start_index;
+            start_index += nd.m_sizes[i + 1];
         }
-        for (auto i = 0; i < res.extent(0); ++i)
-            result(i, 0) = res(i, 0);
     }
     //	Train the neural network using mini-batch stochastic
     //	gradient descent.The training_data is a vector of pairs

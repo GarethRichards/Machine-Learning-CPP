@@ -74,25 +74,23 @@ int main() {
         f.close();
     }
     // read it and use it
-    /*
-NeuralNet1 net2;
-{
-            std::fstream f("./net-save.txt", std::ios::binary | std::ios::in);
-            if (!f.is_open()) {
-                    std::cout << "failed to open ./net-save.txt\n";
-                    return 0;
-    } else {
-        f >> net2;
+    NeuralNet1 net2;
+    {
+        std::fstream f("./net-save.txt", std::ios::binary | std::ios::in);
+        if (!f.is_open()) {
+            std::cout << "failed to open ./net-save.txt\n";
+            return 0;
+        } else {
+            f >> net2;
+        }
+        // test total cost should be same as before
+        std::cout << "Cost Test    : " << net2.total_cost(testData.begin(), testData.end(), Lmbda) << "\n";
+        std::vector<float> res(10);
+        mdspan<float, std::dextents<size_t, 2>> nres(res.data(), (size_t)res.size(), 1);
+        net2.feedforward(testData[0].first, nres);
+        auto x = net2.result(nres);
+        auto y = net2.result(testData[2].second);
+        std::cout << "looks like a " << x << " is a " << y << "\n";
     }
-            // test total cost should be same as before
-    std::cout << "Cost Test    : " << net2.total_cost(testData.begin(), testData.end(), Lmbda) << "\n";
-            std::vector<float> res(10);
-            mdspan<float, std::dextents<size_t, 2>> nres(res.data(), (size_t)res.size(), 1);
-            net2.feedforward(testData[0].first, nres);
-            auto x = net2.result(nres);
-    auto y = net2.result(testData[2].second);
-    std::cout << "looks like a " << x << " is a " << y << "\n";
-    }
-    */
     return 0;
 }

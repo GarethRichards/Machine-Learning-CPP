@@ -173,20 +173,16 @@ class Network : private CostPolicy, private ActivationPolicy {
         size_t max_vec_size = 0;
         size_t tot_vec_size = 0;
         BiasesVector biases;
-        std::vector<float> biases_data;
+        std::vector<T> biases_data;
         WeightsVector weights;
-        std::vector<float> weights_data;
+        std::vector<T> weights_data;
         std::mt19937 gen;
 
-        NetworkData() = delete;
+        NetworkData() = default;
         explicit NetworkData(const std::vector<size_t> &m_sizes) : m_sizes(m_sizes) {
             std::random_device r;
             gen = std::mt19937(r());
             PopulateZeroWeightsAndBiases();
-            max_vec_size = *std::max_element(m_sizes.begin(), m_sizes.end());
-            tot_vec_size = 0;
-            for (auto s : m_sizes)
-                tot_vec_size += s;
         }
         ~NetworkData() = default;
         void PopulateZeroWeightsAndBiases() {
@@ -206,6 +202,10 @@ class Network : private CostPolicy, private ActivationPolicy {
                 biases_data_size += m_sizes[i];
                 weights_data_size += m_sizes[i] * m_sizes[i - 1];
             }
+            max_vec_size = *std::max_element(m_sizes.begin(), m_sizes.end());
+            tot_vec_size = 0;
+            for (auto s : m_sizes)
+                tot_vec_size += s;
         }
         NetworkData &operator+=(const NetworkData &rhs) {
             for (auto j = 0; j < biases.size(); ++j) {
@@ -342,14 +342,7 @@ class Network : private CostPolicy, private ActivationPolicy {
         this->cost_delta(*izs, *iActivations, y, *ib);
         iActivations--;
         linalg::matrix_product(*ib, linalg::transposed(*iActivations), *iw);
-        /*
-        std::cout << (*iw).extent(0) << "," << (*iw).extent(1) << "\n";
-        for (int i = 0; i < (*iw).extent(0); i++) {
-                for (int j = 0; j < (*iw).extent(1); j++) {
-                        std::cout << (*iw)(i, j) << ",";
-                }
-                std::cout << "\n";
-        }*/
+
         auto iWeights = nd.weights.end();
         while (iActivations != activations.begin()) {
             auto previous_delta = *ib;
@@ -363,17 +356,7 @@ class Network : private CostPolicy, private ActivationPolicy {
             for (int i = 0; i < (*ib).extent(0); i++) {
                 (*ib)(i, 0) = (*ib)(i, 0) * (*izs)(i, 0);
             }
-            // std::cout << "\n";
             linalg::matrix_product(*ib, linalg::transposed(*iActivations), *iw);
-            /*
-            std::cout << (*iw).extent(0) << "," << (*iw).extent(1) << "\n";
-            for (int i = 0; i < (*iw).extent(0); i++) {
-                    for (int j = 0; j < (*iw).extent(1); j++) {
-                            std::cout << (*iw)(i, j) << ",";
-                    }
-                    std::cout << "\n";
-            }
-            */
         }
     }
     auto result(const nvec &res) const {
@@ -422,39 +405,31 @@ class Network : private CostPolicy, private ActivationPolicy {
     }
 
     friend std::ostream &operator<<(std::ostream &os, const Network &net) {
-        /*
-                    os << net.nd.m_sizes.size() << " ";
-                    std::ranges::for_each(net.nd.m_sizes, [&](size_t x) { os << x << " "; });
-                    for (auto x = 0; x < net.nd.m_sizes.size() - 1; ++x) {
-                        std::ranges::for_each(net.nd.biases[x], [&](T y) { os << y << " "; });
-                        std::ranges::for_each(net.nd.weights[x].data(), [&](T y) { os << y << " "; });
-                                };
-                                */
+        os << net.nd.m_sizes.size() << " ";
+        std::ranges::for_each(net.nd.m_sizes, [&](size_t x) { os << x << " "; });
+        std::ranges::for_each(net.nd.biases_data, [&](T y) { os << y << " "; });
+        std::ranges::for_each(net.nd.weights_data, [&](T y) { os << y << " "; });
         return os;
     }
 
     friend std::istream &operator>>(std::istream &is, Network &obj) {
-        /*
-int netSize;
-is >> netSize;
-for (int i = 0; i < netSize; ++i) {
-int size;
-is >> size;
-obj.nd.m_sizes.push_back(size);
+        int netSize;
+        is >> netSize;
+        for (int i = 0; i < netSize; ++i) {
+            int size;
+            is >> size;
+            obj.nd.m_sizes.push_back(size);
         }
-obj.nd.PopulateZeroWeightsAndBiases();
-T a;
-for (auto x = 1; x < obj.nd.m_sizes.size(); ++x) {
-for (auto y = 0; y < obj.nd.m_sizes[x]; ++y) {
-    is >> a;
-    obj.nd.biases[x - 1][y] = a;
-}
-for (auto y = 0; y < obj.nd.m_sizes[x] * obj.nd.m_sizes[x - 1]; ++y) {
-    is >> a;
-    obj.nd.weights[x - 1][y] = a;
-}
-};
-        */
+        obj.nd.PopulateZeroWeightsAndBiases();
+        T a;
+        for (auto x = 0; x < obj.nd.biases_data.size(); ++x) {
+            is >> a;
+            obj.nd.biases_data[x] = a;
+        }
+        for (auto x = 0; x < obj.nd.weights_data.size(); ++x) {
+            is >> a;
+            obj.nd.weights_data[x] = a;
+        }
         return is;
     }
 };

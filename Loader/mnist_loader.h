@@ -20,7 +20,7 @@
 template <typename T> class mnist_loader {
   public:
     mnist_loader(
-        const std::filesystem::path FileData, const std::filesystem::path FileLabels,
+        const std::filesystem::path &FileData, const std::filesystem::path &FileLabels,
         std::vector<std::pair<std::vector<T>, std::vector<T>>> &mnist_data,
         std::vector<std::pair<std::mdspan<T, std::dextents<size_t, 2>>, std::mdspan<T, std::dextents<size_t, 2>>>>
             &mdspan_td) {

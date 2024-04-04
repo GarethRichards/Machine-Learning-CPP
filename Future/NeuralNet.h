@@ -1,6 +1,6 @@
 ﻿#pragma once
 //
-//  Copyright (c) 2017
+//  Copyright (c) 2024
 //  Gareth Richards
 //
 // NeuralNet.h Definition for NeuralNet namespace contains the following classes
@@ -25,7 +25,6 @@
 #include <ranges>
 #include <vector>
 
-using std::experimental::extents;
 using std::experimental::mdspan;
 
 namespace linalg = std::experimental::linalg;

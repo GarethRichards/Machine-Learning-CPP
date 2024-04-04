@@ -11,7 +11,7 @@
 // This implementation aims to be slight better C++ rather than Python code
 // ported to C++
 //
-// Uses the boost ublas library for linear algebra operations
+// Uses the experimental/linalg extension for linear algebra operations
 
 #include "NeuralNet.h"
 #include "mnist_loader.h"
@@ -20,9 +20,10 @@
 #include <iostream>
 #include <random>
 #include <vector>
+#include <filesystem>
 
-// using namespace boost::numeric;
 using namespace NeuralNet;
+using namespace std::filesystem;
 
 int main() {
     using NeuralNet1 = NeuralNet::Network<float, NeuralNet::CrossEntropyCost<float>, NeuralNet::ReLUActivation<float>>;
@@ -31,13 +32,13 @@ int main() {
     std::vector<std::pair<std::vector<float>, std::vector<float>>> test_data_mem;
     try {
         // Load training data
-        const std::string_view train_images("..\\Data\\train-images.idx3-ubyte");
-        const std::string_view train_labels("..\\Data\\train-labels.idx1-ubyte");
+        const std::filesystem::path train_images = ::path("..") / path("Data") / path("train-images.idx3-ubyte");
+        const std::filesystem::path train_labels = ::path("..") / path("Data") / path("train-labels.idx1-ubyte");
         mnist_loader<float> loader(train_images, train_labels, training_data_mem, td);
         // Load test data
-        const std::string_view t_images("..\\Data\\t10k-images.idx3-ubyte");
-        const std::string_view t_labels("..\\Data\\t10k-labels.idx1-ubyte");
-        mnist_loader<float> loader2(t_images, t_labels, test_data_mem, testData);
+        const std::filesystem::path t10K_images = ::path("..") / path("Data") / path("t10k-images.idx3-ubyte");
+        const std::filesystem::path t10K_labels = ::path("..") / path("Data") / path("t10k-labels.idx1-ubyte");
+        mnist_loader<float> loader2(t10K_images, t10K_labels, test_data_mem, testData);
     } catch (const char *Error) {
         std::cout << "Error: " << Error << "\n";
         return 0;

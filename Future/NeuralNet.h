@@ -25,6 +25,7 @@
 #include <ranges>
 #include <vector>
 
+using std::experimental::extents;
 using std::experimental::mdspan;
 
 namespace linalg = std::experimental::linalg;
@@ -143,8 +144,9 @@ template <typename T> class CrossEntropyCost {
         (void)z; // not used by design
         std::vector<T> sy_data(y.extent(0));
         nvec sy(sy_data.data(), y.extent(0), 1);
+        constexpr T m_one = -1.0;
         for (int i = 0; i < y.extent(0); ++i)
-            sy(i, 0) = y(i, 0) * -1.0;
+            sy(i, 0) = y(i, 0) * m_one;
         linalg::add(a, sy, result);
     }
 };
@@ -183,6 +185,66 @@ class Network : private CostPolicy, private ActivationPolicy {
             gen = std::mt19937(r());
             PopulateZeroWeightsAndBiases();
         }
+        NetworkData(const NetworkData &other)
+            : m_sizes(other.m_sizes), max_vec_size(other.max_vec_size), tot_vec_size(other.tot_vec_size),
+              biases_data(other.biases_data), weights_data(other.weights_data), gen(other.gen) {
+            size_t biases_data_size = 0;
+            size_t weights_data_size = 0;
+            for (auto i = 1; i < m_sizes.size(); ++i) {
+                biases.push_back(nvec(&biases_data[biases_data_size], m_sizes[i], 1));
+                weights.push_back(nmatrix(&weights_data[weights_data_size], m_sizes[i], m_sizes[i - 1]));
+                biases_data_size += m_sizes[i];
+                weights_data_size += m_sizes[i] * m_sizes[i - 1];
+            }
+        }
+        NetworkData(NetworkData &&other)
+            : m_sizes(std::move(other.m_sizes)), max_vec_size(std::move(other.max_vec_size)),
+              tot_vec_size(std::move(other.tot_vec_size)), biases_data(std::move(other.biases_data)),
+              weights_data(std::move(other.weights_data)), gen(std::move(other.gen)) {
+            size_t biases_data_size = 0;
+            size_t weights_data_size = 0;
+            biases.clear();
+            weights.clear();
+            for (auto i = 1; i < m_sizes.size(); ++i) {
+                biases.push_back(nvec(&biases_data[biases_data_size], m_sizes[i], 1));
+                weights.push_back(nmatrix(&weights_data[weights_data_size], m_sizes[i], m_sizes[i - 1]));
+                biases_data_size += m_sizes[i];
+                weights_data_size += m_sizes[i] * m_sizes[i - 1];
+            }
+        }
+        NetworkData &operator=(const NetworkData &other) {
+            // Guard self assignment
+            if (this == &other)
+                return *this;
+            m_sizes = other.m_sizes;
+            max_vec_size = other.max_vec_size;
+            tot_vec_size = other.tot_vec_size;
+            biases_data = other.biases_data;
+            weights_data = other.weights_data;
+            gen = other.gen;
+            size_t biases_data_size = 0;
+            size_t weights_data_size = 0;
+            biases.clear();
+            weights.clear();
+            for (auto i = 1; i < m_sizes.size(); ++i) {
+                biases.push_back(nvec(&biases_data[biases_data_size], m_sizes[i], 1));
+                weights.push_back(nmatrix(&weights_data[weights_data_size], m_sizes[i], m_sizes[i - 1]));
+                biases_data_size += m_sizes[i];
+                weights_data_size += m_sizes[i] * m_sizes[i - 1];
+            }
+            return *this;
+        }
+        NetworkData &operator=(NetworkData &&other) {
+            m_sizes = std::move(other.m_sizes);
+            max_vec_size = std::move(other.max_vec_size);
+            tot_vec_size = std::move(other.tot_vec_size);
+            biases_data = std::move(other.biases_data);
+            weights_data = std::move(other.weights_data);
+            biases = std::move(other.biases);
+            weights = std::move(other.weights);
+            gen = std::move(other.gen);
+            return *this;
+        }
         ~NetworkData() = default;
         void PopulateZeroWeightsAndBiases() {
             size_t biases_data_size = 0;
@@ -213,9 +275,9 @@ class Network : private CostPolicy, private ActivationPolicy {
             }
             return *this;
         }
-        NetworkData &operator+(const NetworkData &rhs) {
-            *this += rhs; // reuse compound assignment
-            return *this;
+        friend NetworkData operator+(NetworkData lhs, const NetworkData &rhs) {
+            lhs += rhs; // reuse compound assignment
+            return lhs;
         }
 
         void Randomize() {
@@ -293,12 +355,13 @@ class Network : private CostPolicy, private ActivationPolicy {
     //	is the learning rate."""
     void update_mini_batch(TrainingDataIterator td, int mini_batch_size, T eta, T lmbda, auto n) {
         NetworkData nabla(nd.m_sizes);
-        for (auto i = 0; i < mini_batch_size; ++i, td++) {
-            const auto &[x, y] = *td; // test data x, expected result y
-            NetworkData delta_nabla(this->nd.m_sizes);
-            backprop(x, y, delta_nabla);
-            nabla += delta_nabla;
-        }
+        nabla = std::transform_reduce(std::execution::par, td, td + mini_batch_size, nabla, std::plus<NetworkData>(),
+                                      [this](const TrainingData &tdIn) {
+                                          const auto &[x, y] = tdIn; // test data x, expected result y
+                                          NetworkData delta_nabla(this->nd.m_sizes);
+                                          backprop(x, y, delta_nabla);
+                                          return delta_nabla;
+                                      });
         constexpr T one = 1.0;
         for (auto i = 0; i < nd.biases.size(); ++i) {
             linalg::add(nd.biases[i], linalg::scaled(-eta / mini_batch_size, nabla.biases[i]), nd.biases[i]);
@@ -358,7 +421,7 @@ class Network : private CostPolicy, private ActivationPolicy {
             linalg::matrix_product(*ib, linalg::transposed(*iActivations), *iw);
         }
     }
-    auto result(const nvec &res) const {
+    static auto result(const nvec &res) {
         T maxR = res(0, 0);
         int v = 0;
         for (int i = 1; i < res.extent(0); ++i) {
@@ -372,7 +435,7 @@ class Network : private CostPolicy, private ActivationPolicy {
     // Return the vector of partial derivatives \partial C_x /
     //	\partial a for the output activations.
     auto accuracy(TrainingDataIterator td_begin, TrainingDataIterator td_end) const {
-        return count_if(std::execution::seq, td_begin, td_end, [this](const TrainingData &testElement) {
+        return count_if(std::execution::par, td_begin, td_end, [this](const TrainingData &testElement) {
             const auto &[x, y] = testElement; // test data x, expected result y
             std::vector<T> res(nd.m_sizes[nd.m_sizes.size() - 1]);
             nvec nres(res.data(), (size_t)res.size(), 1);
@@ -383,9 +446,9 @@ class Network : private CostPolicy, private ActivationPolicy {
     // Return the total cost for the data set ``data``.
 
     T total_cost(TrainingDataIterator td_begin, TrainingDataIterator td_end, T lmbda) const {
-        auto count = std::distance(td_begin, td_end);
+        auto count = static_cast<T>(std::distance(td_begin, td_end));
         T cost(0);
-        cost = std::transform_reduce(std::execution::seq, td_begin, td_end, cost, std::plus<>(),
+        cost = std::transform_reduce(std::execution::par, td_begin, td_end, cost, std::plus<>(),
                                      [this](const TrainingData &td) {
                                          const auto &[testData, expectedResult] = td;
                                          std::vector<T> res(nd.m_sizes[nd.m_sizes.size() - 1]);
@@ -394,11 +457,12 @@ class Network : private CostPolicy, private ActivationPolicy {
                                          return this->cost_fn(nres, expectedResult);
                                      });
 
-        cost /= static_cast<T>(count);
+        cost /= count;
         constexpr T zero = 0.0;
         constexpr T half = 0.5;
+        constexpr T two = 2;
         T reg = std::accumulate(nd.weights.begin(), nd.weights.end(), zero, [lmbda, count](T regC, const nmatrix &w) {
-            return regC + half * (lmbda * pow(linalg::matrix_frob_norm(w), 2)) / static_cast<T>(count);
+            return regC + half * (lmbda * pow(linalg::matrix_frob_norm(w), two)) / count;
         });
         return cost; // +reg;
     }

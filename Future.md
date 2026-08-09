@@ -19,7 +19,7 @@ With C++ 17 This can be simplefied to:
     {
         const auto& [ x, y ] = td; // test data x, expected result y
 ```
-A definate win for readability.
+A definite win for readability.
 
 ## Parallel STL
 When writing modern C++ a good practice is lookout for possible places where you can replace a hand written loop with an algorithm from the standard 
